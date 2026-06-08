@@ -28,6 +28,7 @@ model Country {
   name        String    @unique
   continentId String
   continent   Continent @relation(fields: [continentId], references: [id], onDelete: Cascade)
+  state       State[]   // adicionado conceito de estado
   cities      City[]    // Relacionamento 1-para-Muitos: Um país tem várias cidades
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -35,15 +36,27 @@ model Country {
   @@map("countries")
 }
 
+model State {
+  id          String @id @default(uuid())
+  name        String
+  countryId   String
+  country     Country @relation(fields: [countryId], references: [id])
+  cities      City[]
+
+  @@unique([name, countryId])
+}
+
 model City {
   id        String   @id @default(uuid())
   name      String
+  stateId   String?
+  state     State?   @relation(fields: [stateId], references: [id])
   countryId String
   country   Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([name, countryId])
+  @@unique([name, stateId])
   @@map("cities")
 }
 

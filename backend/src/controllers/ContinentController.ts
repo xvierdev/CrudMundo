@@ -6,9 +6,27 @@ const continentService = new ContinentService();
 export class ContinentController {
     list = async (req: Request, res: Response) => {
         try {
-            console.log("Usuário que está requisitando:", req.headers['x-user-id']);
             const continents = await continentService.executeList();
             return res.json(continents);
+        } catch (error: any) {
+            return res.status(500).json({ error: error.message });
+        }
+    }
+
+    show = async (req: Request, res: Response) => {
+        try {
+            const { id } = req.params;
+            const continent = await continentService.executeFindById(id);
+            return res.json(continent);
+        } catch (error: any) {
+            return res.status(404).json({ error: error.message });
+        }
+    }
+
+    listWithCountries = async (req: Request, res: Response) => {
+        try {
+            const data = await continentService.executeListWithCountries();
+            return res.json(data);
         } catch (error: any) {
             return res.status(500).json({ error: error.message });
         }
@@ -17,16 +35,31 @@ export class ContinentController {
     create = async (req: Request, res: Response) => {
         try {
             const { name } = req.body;
-
-            const autorId = req.headers['x-user-id'];
-            console.log(`Usuário ${autorId} está criando o continente: ${name}`);
-
-            if (!name) {
-                return res.status(400).json({ error: "O nome do continente é obrigatório." })
-            }
-
+            if (!name) return res.status(400).json({ error: "O nome do continente é obrigatório." });
             const continent = await continentService.executeCreate(name);
             return res.status(201).json(continent);
+        } catch (error: any) {
+            return res.status(400).json({ error: error.message });
+        }
+    }
+
+    update = async (req: Request, res: Response) => {
+        try {
+            const { id } = req.params;
+            const { name } = req.body;
+            if (!name) return res.status(400).json({ error: "O nome é obrigatório." });
+            const continent = await continentService.executeUpdate(id, name);
+            return res.json(continent);
+        } catch (error: any) {
+            return res.status(400).json({ error: error.message });
+        }
+    }
+
+    delete = async (req: Request, res: Response) => {
+        try {
+            const { id } = req.params;
+            await continentService.executeDelete(id);
+            return res.status(204).send();
         } catch (error: any) {
             return res.status(400).json({ error: error.message });
         }
