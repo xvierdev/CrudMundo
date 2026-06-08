@@ -5,8 +5,7 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -14,9 +13,47 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Continent {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  countries Country[] // Relacionamento 1-para-Muitos: Um continente tem vários países
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("continents") // Opcional: Define o nome da tabela no plural no Postgres
+}
+
+model Country {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  continentId String
+  continent   Continent @relation(fields: [continentId], references: [id], onDelete: Cascade)
+  cities      City[]    // Relacionamento 1-para-Muitos: Um país tem várias cidades
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("countries")
+}
+
+model City {
+  id        String   @id @default(uuid())
+  name      String
+  countryId String
+  country   Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name, countryId])
+  @@map("cities")
+}
+
 model User {
   id        String   @id @default(uuid())
-  email     String   @unique
   name      String?
+  email     String   @unique
+  password  String   // Hash da senha para login
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
 }
