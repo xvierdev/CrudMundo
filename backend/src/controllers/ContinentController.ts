@@ -15,7 +15,7 @@ export class ContinentController {
 
     show = async (req: Request, res: Response) => {
         try {
-            const { id } = req.params;
+            const { id } = req.params as { id: string };
             const continent = await continentService.executeFindById(id);
             return res.json(continent);
         } catch (error: any) {
@@ -45,7 +45,7 @@ export class ContinentController {
 
     update = async (req: Request, res: Response) => {
         try {
-            const { id } = req.params;
+            const { id } = req.params as { id: string };
             const { name } = req.body;
             if (!name) return res.status(400).json({ error: "O nome é obrigatório." });
             const continent = await continentService.executeUpdate(id, name);
@@ -57,7 +57,7 @@ export class ContinentController {
 
     delete = async (req: Request, res: Response) => {
         try {
-            const { id } = req.params;
+            const { id } = req.params as { id: string };
             await continentService.executeDelete(id);
             return res.status(204).send();
         } catch (error: any) {

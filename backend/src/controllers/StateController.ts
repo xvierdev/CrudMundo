@@ -15,7 +15,7 @@ export class StateController {
 
     show = async (req: Request, res: Response) => {
         try {
-            const { id } = req.params;
+            const { id } = req.params as { id: string };;
             const state = await stateService.executeFindById(id);
             return res.json(state);
         } catch (error: any) {
@@ -38,7 +38,7 @@ export class StateController {
 
     update = async (req: Request, res: Response) => {
         try {
-            const { id } = req.params;
+            const { id } = req.params as { id: string };;
             const { name, countryId } = req.body;
             const state = await stateService.executeUpdate(id, { name, countryId });
             return res.json(state);
@@ -49,7 +49,7 @@ export class StateController {
 
     delete = async (req: Request, res: Response) => {
         try {
-            const { id } = req.params;
+            const { id } = req.params as { id: string };;
             await stateService.executeDelete(id);
             return res.status(204).send();
         } catch (error: any) {

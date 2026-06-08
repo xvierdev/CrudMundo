@@ -59,9 +59,14 @@ export class StateService {
             throw new Error("Estado não encontrado.");
         }
 
+        const updateData: any = {};
+
+        if (name !== undefined) updateData.name = name;
+        if (countryId !== undefined) updateData.countryId = countryId;
+
         return await prisma.state.update({
             where: { id },
-            data: { name, countryId }
+            data: updateData
         });
     }
 

@@ -37,7 +37,11 @@ export class CityService {
         }
 
         return await prisma.city.create({
-            data: { name, stateId, countryId }
+            data: {
+                name: name,
+                countryId: countryId,
+                stateId: stateId ?? null
+            }
         });
     }
 

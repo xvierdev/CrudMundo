@@ -15,7 +15,7 @@ export class CountryController {
 
     show = async (req: Request, res: Response) => {
         try {
-            const { id } = req.params;
+            const { id } = req.params as { id: string };
             const country = await countryService.executeFindById(id);
             return res.json(country);
         } catch (error: any) {
@@ -38,7 +38,7 @@ export class CountryController {
 
     update = async (req: Request, res: Response) => {
         try {
-            const { id } = req.params;
+            const { id } = req.params as { id: string };
             const { name, continentId } = req.body;
             const country = await countryService.executeUpdate(id, { name, continentId });
             return res.json(country);
@@ -49,7 +49,7 @@ export class CountryController {
 
     delete = async (req: Request, res: Response) => {
         try {
-            const { id } = req.params;
+            const { id } = req.params as { id: string };
             await countryService.executeDelete(id);
             return res.status(204).send();
         } catch (error: any) {

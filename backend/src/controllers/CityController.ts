@@ -15,7 +15,7 @@ export class CityController {
 
     show = async (req: Request, res: Response) => {
         try {
-            const { id } = req.params;
+            const { id } = req.params as { id: string };
             const city = await cityService.executeFindById(id);
             return res.json(city);
         } catch (error: any) {
@@ -38,7 +38,7 @@ export class CityController {
 
     update = async (req: Request, res: Response) => {
         try {
-            const { id } = req.params;
+            const { id } = req.params as { id: string };
             const { name, stateId, countryId } = req.body;
             const city = await cityService.executeUpdate(id, { name, stateId, countryId });
             return res.json(city);
@@ -49,7 +49,7 @@ export class CityController {
 
     delete = async (req: Request, res: Response) => {
         try {
-            const { id } = req.params;
+            const { id } = req.params as { id: string };
             await cityService.executeDelete(id);
             return res.status(204).send();
         } catch (error: any) {
