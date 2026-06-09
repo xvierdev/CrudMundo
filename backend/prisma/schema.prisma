@@ -27,9 +27,10 @@ model Continent {
 model Country {
   id               String    @id @default(uuid())
   name             String    @unique
-  population       Int?      // Novo campo
-  officialLanguage String?   // Novo campo
-  currency         String?   // Novo campo
+  exactName        String?   // Nome oficial verificado para APIs externas
+  population       Int?
+  officialLanguage String?
+  currency         String?
   continentId      String
   continent        Continent @relation(fields: [continentId], references: [id], onDelete: Cascade)
   state            State[]

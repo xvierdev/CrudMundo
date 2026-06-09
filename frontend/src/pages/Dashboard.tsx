@@ -12,6 +12,7 @@ interface Continent {
 interface Country {
   id: string;
   name: string;
+  exactName?: string;
   continentId: string;
   population?: number;
   officialLanguage?: string;
@@ -72,6 +73,7 @@ const Dashboard: React.FC = () => {
   // Form State
   const [formData, setFormData] = useState({
     name: '',
+    exactName: '', // Nome oficial verificado
     description: '',
     population: '',
     officialLanguage: '',
@@ -162,10 +164,36 @@ const Dashboard: React.FC = () => {
   const activeItem = selectedCity || selectedState || selectedCountry || selectedContinent;
   const activeType = selectedCity ? 'Cidade' : selectedState ? 'Estado' : selectedCountry ? 'País' : selectedContinent ? 'Continente' : null;
 
-  const fetchExternalCountry = useCallback(async (name: string) => {
+  const fetchExternalCountry = useCallback(async (name: string, exact?: string) => {
     setApiLoading(true);
     try {
-      const response = await axios.get(`https://restcountries.com/v3.1/name/${encodeURIComponent(name)}?fullText=false`);
+      let response;
+      if (exact) {
+        // Se temos o nome exato (em inglês), usamos a busca por texto completo
+        response = await axios.get(`https://restcountries.com/v3.1/name/${encodeURIComponent(exact)}?fullText=true`);
+      } else {
+        // Se não temos o nome exato, usamos o endpoint de tradução que é mais robusto para inputs em PT-BR
+        // e tentamos encontrar a melhor correspondência nos resultados
+        response = await axios.get(`https://restcountries.com/v3.1/translation/${encodeURIComponent(name)}`);
+        
+        if (response.data && response.data.length > 1) {
+          // Se houver mais de um resultado (ex: Estados Unidos -> México e USA)
+          // Filtramos pelo nome comum ou tradução que bata exatamente com o que o usuário digitou
+          const bestMatch = response.data.find((c: any) => {
+            const commonName = c.name.common.toLowerCase();
+            const portugueseName = c.translations?.por?.common?.toLowerCase();
+            const inputName = name.toLowerCase();
+            return commonName === inputName || portugueseName === inputName;
+          });
+          
+          if (bestMatch) {
+            setExternalCountry(bestMatch);
+            setApiLoading(false);
+            return;
+          }
+        }
+      }
+
       if (response.data && response.data.length > 0) {
         setExternalCountry(response.data[0]);
       } else {
@@ -181,37 +209,101 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     if (selectedCountry) {
-      fetchExternalCountry(selectedCountry.name);
+      fetchExternalCountry(selectedCountry.name, selectedCountry.exactName);
     } else {
       setExternalCountry(null);
     }
   }, [selectedCountry, fetchExternalCountry]);
 
+  const verifyCountryWithGroq = async (name: string, continent: string): Promise<string> => {
+    const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+    if (!apiKey) {
+      console.warn('Groq API Key não encontrada no .env');
+      return name;
+    }
+
+    try {
+      console.log('Consultando Groq para:', { name, continent });
+      const response = await axios.post(
+        'https://api.groq.com/openai/v1/chat/completions',
+        {
+          model: 'llama-3.1-8b-instant',
+          messages: [
+            {
+              role: 'system',
+              content: 'Você é um especialista em geografia. Sua tarefa é receber o nome de um país e o continente dele, e retornar APENAS o nome comum desse país em INGLÊS que seja reconhecido pela API restcountries.com. Não explique nada, retorne apenas o nome. Exemplo: "Estados Unidos" na "América" -> "United States".'
+            },
+            {
+              role: 'user',
+              content: `País: ${name}, Continente: ${continent}`
+            }
+          ],
+          temperature: 0,
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      const verifiedName = response.data.choices[0].message.content.trim().replace(/[".]/g, '');
+      console.log('Resposta do Groq (Nome Verificado):', verifiedName);
+      return verifiedName;
+    } catch (err: any) {
+      console.error('Erro na requisição ao Groq:', err.response?.data || err.message);
+      return name;
+    }
+  };
+
   const handleAutoFillCountry = async () => {
-    if (!formData.name) {
-      setError('Digite o nome do país primeiro para buscar os dados.');
+    const countryName = formData.name;
+    const continentName = selectedContinent?.name;
+
+    if (!countryName || !continentName) {
+      setError('Digite o nome do país e selecione o continente primeiro.');
       return;
     }
+
     setApiLoading(true);
     setError('');
     try {
-      const response = await axios.get(`https://restcountries.com/v3.1/name/${encodeURIComponent(formData.name)}`);
-      if (response.data && response.data.length > 0) {
+      // 1. Groq valida o nome
+      const verifiedName = await verifyCountryWithGroq(countryName, continentName);
+      
+      // 2. Busca na RestCountries com o nome exato
+      // Usamos um try/catch interno para capturar 404 da RestCountries separadamente
+      let response;
+      try {
+        response = await axios.get(`https://restcountries.com/v3.1/name/${encodeURIComponent(verifiedName)}?fullText=true`);
+      } catch (restErr: any) {
+        if (restErr.response?.status === 404) {
+          setError(`País "${verifiedName}" não encontrado na API RestCountries.`);
+          return;
+        }
+        throw restErr; // Repassa outros erros (conexão, etc.)
+      }
+      
+      if (response && response.data && response.data.length > 0) {
         const data = response.data[0];
         const lang = data.languages ? Object.values(data.languages)[0] : '';
-        const curr = data.currencies ? Object.values(data.currencies)[0].name : '';
+        const currObj = data.currencies ? Object.values(data.currencies)[0] : null;
+        const curr = currObj ? (currObj as any).name : '';
         
         setFormData({
           ...formData,
+          exactName: verifiedName,
           population: data.population.toString(),
           officialLanguage: lang as string,
           currency: curr as string
         });
       } else {
-        setError('País não encontrado na API externa.');
+        setError('Nenhum dado retornado para este país.');
       }
-    } catch (err) {
-      setError('Erro ao buscar dados para preenchimento automático.');
+    } catch (err: any) {
+      console.error('Erro detalhado:', err);
+      setError('Erro de conexão ou falha no serviço de verificação.');
     } finally {
       setApiLoading(false);
     }
@@ -241,6 +333,7 @@ const Dashboard: React.FC = () => {
       } else if (isAdding === 'country') {
         endpoint = '/countries';
         data.continentId = selectedContinent?.id;
+        data.exactName = formData.exactName;
         data.population = formData.population;
         data.officialLanguage = formData.officialLanguage;
         data.currency = formData.currency;
@@ -287,6 +380,7 @@ const Dashboard: React.FC = () => {
       else if (selectedCountry) {
         endpoint = `/countries/${selectedCountry.id}`;
         data.continentId = selectedCountry.continentId;
+        data.exactName = formData.exactName;
         data.population = formData.population;
         data.officialLanguage = formData.officialLanguage;
         data.currency = formData.currency;
@@ -301,7 +395,6 @@ const Dashboard: React.FC = () => {
       resetForm();
       await loadData();
       
-      // Re-sync local selection
       const updatedItemRes = await api.get(endpoint);
       if (selectedCity) setSelectedCity(updatedItemRes.data);
       else if (selectedState) setSelectedState(updatedItemRes.data);
@@ -327,7 +420,6 @@ const Dashboard: React.FC = () => {
 
       await api.delete(endpoint);
       
-      // Clear selection
       if (selectedCity) setSelectedCity(null);
       else if (selectedState) setSelectedState(null);
       else if (selectedCountry) setSelectedCountry(null);
@@ -343,6 +435,7 @@ const Dashboard: React.FC = () => {
     if (!activeItem) return;
     setFormData({
       name: activeItem.name,
+      exactName: (activeItem as Country).exactName || '',
       description: (activeItem as Continent).description || '',
       population: (activeItem as any).population?.toString() || '',
       officialLanguage: (activeItem as Country).officialLanguage || '',
@@ -363,6 +456,7 @@ const Dashboard: React.FC = () => {
   const resetForm = () => {
     setFormData({
       name: '',
+      exactName: '',
       description: '',
       population: '',
       officialLanguage: '',
@@ -382,7 +476,6 @@ const Dashboard: React.FC = () => {
         </div>
       </header>
 
-      {/* Quadrante Superior: Seleção */}
       <div style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '20px', marginBottom: '10px', backgroundColor: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
           <button 
@@ -396,7 +489,6 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-          {/* Continente */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
             <label>Continente:</label>
             <select 
@@ -416,7 +508,6 @@ const Dashboard: React.FC = () => {
             <button onClick={() => startAdd('continent')} style={{ cursor: 'pointer' }}>+</button>
           </div>
 
-          {/* País */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', opacity: selectedContinent ? 1 : 0.5 }}>
             <label>País:</label>
             <select 
@@ -436,7 +527,6 @@ const Dashboard: React.FC = () => {
             <button disabled={!selectedContinent} onClick={() => startAdd('country')} style={{ cursor: 'pointer' }}>+</button>
           </div>
 
-          {/* Estado */}
           {selectedCountry && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <label>Estado:</label>
@@ -460,7 +550,6 @@ const Dashboard: React.FC = () => {
             </div>
           )}
 
-          {/* Cidade */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px', opacity: selectedCountry ? 1 : 0.5 }}>
             <label>Cidade:</label>
             <select 
@@ -485,6 +574,10 @@ const Dashboard: React.FC = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px' }}>
               <input type="text" placeholder="Nome" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={{ padding: '8px' }} />
               
+              {isAdding === 'country' && (
+                <input type="text" placeholder="Nome Exato (API)" value={formData.exactName} onChange={e => setFormData({...formData, exactName: e.target.value})} style={{ padding: '8px' }} />
+              )}
+
               {isAdding === 'continent' && (
                 <input type="text" placeholder="Descrição" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} style={{ padding: '8px' }} />
               )}
@@ -523,7 +616,6 @@ const Dashboard: React.FC = () => {
         )}
       </div>
 
-      {/* Quadrante Inferior: Informações Principais */}
       <div style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '20px', backgroundColor: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '20px' }}>
         <h3 style={{ marginTop: 0, borderBottom: '1px solid #eee', paddingBottom: '10px' }}>Detalhes do Local</h3>
         
@@ -537,7 +629,6 @@ const Dashboard: React.FC = () => {
                 <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={{ padding: '5px' }} />
               ) : activeItem.name}</div>
               
-              {/* Campos dinâmicos baseados no tipo */}
               {activeType === 'Continente' && (
                 <div style={{ gridColumn: '1 / -1' }}>
                   <strong>Descrição:</strong> {isEditing ? (
@@ -563,6 +654,7 @@ const Dashboard: React.FC = () => {
 
                   {!isEditing && (
                     <>
+                      <div><strong>Nome Exato (DB):</strong> {selectedCountry?.exactName || 'N/A'}</div>
                       <div><strong>População (DB):</strong> {selectedCountry?.population?.toLocaleString() || 'N/A'}</div>
                       <div><strong>Idioma (DB):</strong> {selectedCountry?.officialLanguage || 'N/A'}</div>
                       <div><strong>Moeda (DB):</strong> {selectedCountry?.currency || 'N/A'}</div>
@@ -571,6 +663,7 @@ const Dashboard: React.FC = () => {
 
                   {isEditing && (
                     <>
+                      <div><strong>Nome Exato:</strong> <input type="text" value={formData.exactName} onChange={e => setFormData({...formData, exactName: e.target.value})} style={{ padding: '5px' }} /></div>
                       <div><strong>População:</strong> <input type="number" value={formData.population} onChange={e => setFormData({...formData, population: e.target.value})} style={{ padding: '5px' }} /></div>
                       <div><strong>Idioma:</strong> <input type="text" value={formData.officialLanguage} onChange={e => setFormData({...formData, officialLanguage: e.target.value})} style={{ padding: '5px' }} /></div>
                       <div><strong>Moeda:</strong> <input type="text" value={formData.currency} onChange={e => setFormData({...formData, currency: e.target.value})} style={{ padding: '5px' }} /></div>
@@ -623,10 +716,8 @@ const Dashboard: React.FC = () => {
         )}
       </div>
 
-      {/* Containers de Listagem Adicionais */}
       {activeItem && children && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Container Países */}
           {children.subCountries.length > 0 && (
             <div style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '20px', backgroundColor: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <h4 style={{ marginTop: 0 }}>Países ({children.subCountries.length})</h4>
@@ -641,7 +732,6 @@ const Dashboard: React.FC = () => {
             </div>
           )}
 
-          {/* Container Estados */}
           {children.subStates.length > 0 && (
             <div style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '20px', backgroundColor: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <h4 style={{ marginTop: 0 }}>Estados ({children.subStates.length})</h4>
@@ -655,7 +745,6 @@ const Dashboard: React.FC = () => {
             </div>
           )}
 
-          {/* Container Cidades */}
           {children.subCities.length > 0 && (
             <div style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '20px', backgroundColor: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <h4 style={{ marginTop: 0 }}>Cidades ({children.subCities.length})</h4>

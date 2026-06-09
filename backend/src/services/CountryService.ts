@@ -1,14 +1,18 @@
 import { prisma } from "../config/prisma";
 
+// 1. Unificamos a interface aqui no topo com todos os campos necessários
 interface CreateCountryData {
     name: string;
     continentId: string;
-    population?: number;
+    exactName?: string;
+    population?: number | string; // Permitindo string caso venha direto de um formulário/query
     officialLanguage?: string;
     currency?: string;
 }
 
 export class CountryService {
+    
+    // Método para listar
     async executeList() {
         return await prisma.country.findMany({
             orderBy: { name: 'asc' },
@@ -25,7 +29,8 @@ export class CountryService {
         return country;
     }
 
-    async executeCreate({ name, continentId, population, officialLanguage, currency }: CreateCountryData) {
+    // Método para criar
+    async executeCreate({ name, continentId, exactName, population, officialLanguage, currency }: CreateCountryData) {
         const continentExists = await prisma.continent.findUnique({ where: { id: continentId } });
         if (!continentExists) throw new Error("O continente informado não existe.");
 
@@ -36,6 +41,7 @@ export class CountryService {
             data: { 
                 name, 
                 continentId, 
+                exactName: exactName ?? null,
                 population: population ? Number(population) : null,
                 officialLanguage: officialLanguage ?? null,
                 currency: currency ?? null,
@@ -43,6 +49,7 @@ export class CountryService {
         });
     }
 
+    // Método para atualizar
     async executeUpdate(id: string, data: Partial<CreateCountryData>) {
         const countryExists = await prisma.country.findUnique({ where: { id } });
         if (!countryExists) throw new Error("País não encontrado.");
@@ -58,6 +65,7 @@ export class CountryService {
         });
     }
 
+    // Método para deletar
     async executeDelete(id: string) {
         const countryExists = await prisma.country.findUnique({ where: { id } });
         if (!countryExists) throw new Error("País não encontrado.");
