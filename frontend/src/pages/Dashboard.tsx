@@ -598,223 +598,230 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#f0f2f5' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #ddd', paddingBottom: '10px' }}>
-        <h2 style={{ margin: 0 }}>CrudMundo - Explorer Pro</h2>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', padding: '24px', backgroundColor: '#f8faff' }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', borderBottom: '1px solid #e1e8ed', paddingBottom: '16px' }}>
+        <h2 style={{ margin: 0, color: '#2c3e50', fontWeight: 700, letterSpacing: '-0.5px' }}>CrudMundo <span style={{ color: '#4a90e2', fontWeight: 400 }}>Explorer</span></h2>
         <div>
-          <span style={{ marginRight: '15px' }}>Olá, <strong>{user?.name}</strong></span>
-          <button onClick={handleLogout} style={{ padding: '5px 10px', cursor: 'pointer' }}>Sair</button>
+          <span style={{ marginRight: '16px', color: '#7f8c8d' }}>Olá, <strong style={{ color: '#2c3e50' }}>{user?.name}</strong></span>
+          <button onClick={handleLogout} style={{ padding: '8px 16px', cursor: 'pointer', backgroundColor: '#fff', border: '1px solid #e1e8ed', color: '#e74c3c', fontWeight: 500 }}>Sair</button>
         </div>
       </header>
 
-      <div style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '20px', marginBottom: '10px', backgroundColor: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-          <button 
-            onClick={handleBack} 
-            disabled={!selectedContinent}
-            style={{ padding: '8px 15px', cursor: 'pointer', display: selectedContinent ? 'block' : 'none' }}
-          >
-            ← Voltar
-          </button>
-          <h3 style={{ margin: 0 }}>Navegação Geográfica</h3>
+      <div style={{ border: 'none', borderRadius: '16px', padding: '24px', marginBottom: '24px', backgroundColor: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
+          {selectedContinent && (
+            <button 
+              onClick={handleBack} 
+              style={{ padding: '8px 12px', cursor: 'pointer', backgroundColor: '#f0f4f8', border: 'none', color: '#4a90e2', borderRadius: '8px', fontWeight: 600 }}
+            >
+              ← Voltar
+            </button>
+          )}
+          <h3 style={{ margin: 0, color: '#34495e', fontSize: '1.25rem' }}>Navegação Geográfica</h3>
         </div>
 
-        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <label>Continente:</label>
-            <select 
-              value={selectedContinent?.id || ''} 
-              onChange={(e) => {
-                const item = continents.find(c => c.id === e.target.value);
-                setSelectedContinent(item || null);
-                setSelectedCountry(null);
-                setSelectedState(null);
-                setSelectedCity(null);
-              }}
-              style={{ padding: '5px', minWidth: '150px' }}
-            >
-              <option value="">Selecione...</option>
-              {continents.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-            <button onClick={() => startAdd('continent')} style={{ cursor: 'pointer' }}>+</button>
+        <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#7f8c8d' }}>CONTINENTE</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <select 
+                value={selectedContinent?.id || ''} 
+                onChange={(e) => {
+                  const item = continents.find(c => c.id === e.target.value);
+                  setSelectedContinent(item || null);
+                  setSelectedCountry(null);
+                  setSelectedState(null);
+                  setSelectedCity(null);
+                }}
+                style={{ padding: '10px', minWidth: '180px', backgroundColor: '#fff' }}
+              >
+                <option value="">Selecione...</option>
+                {continents.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <button onClick={() => startAdd('continent')} style={{ backgroundColor: '#4a90e2', color: '#fff', border: 'none', padding: '0 12px', fontSize: '1.2rem' }}>+</button>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', opacity: selectedContinent ? 1 : 0.5 }}>
-            <label>País:</label>
-            <select 
-              disabled={!selectedContinent}
-              value={selectedCountry?.id || ''} 
-              onChange={(e) => {
-                const item = countries.find(c => c.id === e.target.value);
-                setSelectedCountry(item || null);
-                setSelectedState(null);
-                setSelectedCity(null);
-              }}
-              style={{ padding: '5px', minWidth: '150px' }}
-            >
-              <option value="">Selecione...</option>
-              {filteredCountries.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-            <button disabled={!selectedContinent} onClick={() => startAdd('country')} style={{ cursor: 'pointer' }}>+</button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', opacity: selectedContinent ? 1 : 0.5 }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#7f8c8d' }}>PAÍS</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <select 
+                disabled={!selectedContinent}
+                value={selectedCountry?.id || ''} 
+                onChange={(e) => {
+                  const item = countries.find(c => c.id === e.target.value);
+                  setSelectedCountry(item || null);
+                  setSelectedState(null);
+                  setSelectedCity(null);
+                }}
+                style={{ padding: '10px', minWidth: '180px' }}
+              >
+                <option value="">Selecione...</option>
+                {filteredCountries.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <button disabled={!selectedContinent} onClick={() => startAdd('country')} style={{ backgroundColor: '#4a90e2', color: '#fff', border: 'none', padding: '0 12px', fontSize: '1.2rem' }}>+</button>
+            </div>
           </div>
 
           {selectedCountry && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <label>Estado:</label>
-              {hasStates ? (
-                <select 
-                  value={selectedState?.id || ''} 
-                  onChange={(e) => {
-                    const item = states.find(s => s.id === e.target.value);
-                    setSelectedState(item || null);
-                    setSelectedCity(null);
-                  }}
-                  style={{ padding: '5px', minWidth: '150px' }}
-                >
-                  <option value="">Selecione...</option>
-                  {filteredStates.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-              ) : (
-                <span style={{ color: '#888', fontSize: '0.9em' }}>N/A</span>
-              )}
-              <button onClick={() => startAdd('state')} style={{ cursor: 'pointer' }} title="Adicionar Estado">+</button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#7f8c8d' }}>ESTADO</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {hasStates ? (
+                  <select 
+                    value={selectedState?.id || ''} 
+                    onChange={(e) => {
+                      const item = states.find(s => s.id === e.target.value);
+                      setSelectedState(item || null);
+                      setSelectedCity(null);
+                    }}
+                    style={{ padding: '10px', minWidth: '180px' }}
+                  >
+                    <option value="">Selecione...</option>
+                    {filteredStates.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                ) : (
+                  <span style={{ padding: '10px', color: '#bdc3c7', fontSize: '0.9rem' }}>Nenhum estado</span>
+                )}
+                <button onClick={() => startAdd('state')} style={{ backgroundColor: '#4a90e2', color: '#fff', border: 'none', padding: '0 12px', fontSize: '1.2rem' }}>+</button>
+              </div>
             </div>
           )}
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', opacity: selectedCountry ? 1 : 0.5 }}>
-            <label>Cidade:</label>
-            <select 
-              disabled={!selectedCountry}
-              value={selectedCity?.id || ''} 
-              onChange={(e) => {
-                const item = cities.find(c => c.id === e.target.value);
-                setSelectedCity(item || null);
-              }}
-              style={{ padding: '5px', minWidth: '150px' }}
-            >
-              <option value="">Selecione...</option>
-              {filteredCitiesDropdown.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-            <button disabled={!selectedCountry} onClick={() => startAdd('city')} style={{ cursor: 'pointer' }}>+</button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', opacity: selectedCountry ? 1 : 0.5 }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#7f8c8d' }}>CIDADE</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <select 
+                disabled={!selectedCountry}
+                value={selectedCity?.id || ''} 
+                onChange={(e) => {
+                  const item = cities.find(c => c.id === e.target.value);
+                  setSelectedCity(item || null);
+                }}
+                style={{ padding: '10px', minWidth: '180px' }}
+              >
+                <option value="">Selecione...</option>
+                {filteredCitiesDropdown.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <button disabled={!selectedCountry} onClick={() => startAdd('city')} style={{ backgroundColor: '#4a90e2', color: '#fff', border: 'none', padding: '0 12px', fontSize: '1.2rem' }}>+</button>
+            </div>
           </div>
         </div>
 
         {isAdding && (
-          <div style={{ marginTop: '20px', padding: '20px', border: '1px dashed #007bff', borderRadius: '8px', backgroundColor: '#f8fbff' }}>
-            <h4 style={{ marginTop: 0 }}>Adicionar Novo(a) {isAdding === 'continent' ? 'Continente' : isAdding === 'country' ? 'País' : isAdding === 'state' ? 'Estado' : 'Cidade'}</h4>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px' }}>
-              <input type="text" placeholder="Nome" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={{ padding: '8px' }} />
+          <div style={{ marginTop: '24px', padding: '24px', border: '1px solid #e1e8ed', borderRadius: '12px', backgroundColor: '#fcfdfe' }}>
+            <h4 style={{ marginTop: 0, color: '#4a90e2' }}>Adicionar Novo(a) {isAdding === 'continent' ? 'Continente' : isAdding === 'country' ? 'País' : isAdding === 'state' ? 'Estado' : 'Cidade'}</h4>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
+              <input type="text" placeholder="Nome" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
               
               {isAdding === 'country' && (
-                <input type="text" placeholder="Nome Exato (API)" value={formData.exactName} onChange={e => setFormData({...formData, exactName: e.target.value})} style={{ padding: '8px' }} />
+                <input type="text" placeholder="Nome Exato (Inglês p/ API)" value={formData.exactName} onChange={e => setFormData({...formData, exactName: e.target.value})} />
               )}
 
               {isAdding === 'continent' && (
-                <input type="text" placeholder="Descrição" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} style={{ padding: '8px' }} />
+                <input type="text" placeholder="Descrição" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
               )}
               
               {(isAdding === 'country' || isAdding === 'city') && (
-                <input type="number" placeholder="População" value={formData.population} onChange={e => setFormData({...formData, population: e.target.value})} style={{ padding: '8px' }} />
+                <input type="number" placeholder="População" value={formData.population} onChange={e => setFormData({...formData, population: e.target.value})} />
               )}
               
               {isAdding === 'country' && (
                 <>
-                  <input type="text" placeholder="Idioma Oficial" value={formData.officialLanguage} onChange={e => setFormData({...formData, officialLanguage: e.target.value})} style={{ padding: '8px' }} />
-                  <input type="text" placeholder="Moeda" value={formData.currency} onChange={e => setFormData({...formData, currency: e.target.value})} style={{ padding: '8px' }} />
+                  <input type="text" placeholder="Idioma Oficial" value={formData.officialLanguage} onChange={e => setFormData({...formData, officialLanguage: e.target.value})} />
+                  <input type="text" placeholder="Moeda" value={formData.currency} onChange={e => setFormData({...formData, currency: e.target.value})} />
                   <button 
                     type="button" 
                     onClick={handleAutoFillCountry} 
                     disabled={apiLoading}
-                    style={{ padding: '8px', cursor: 'pointer', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px' }}
+                    style={{ backgroundColor: '#f0f4f8', color: '#4a90e2', border: 'none', fontWeight: 600, padding: '10px' }}
                   >
-                    {apiLoading ? 'Buscando...' : 'Auto-preencher via API'}
+                    {apiLoading ? 'Buscando...' : 'Auto-preencher País'}
                   </button>
                 </>
               )}
               
               {isAdding === 'city' && (
                 <>
-                  <input type="number" step="any" placeholder="Latitude" value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})} style={{ padding: '8px' }} />
-                  <input type="number" step="any" placeholder="Longitude" value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})} style={{ padding: '8px' }} />
+                  <input type="number" step="any" placeholder="Latitude" value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})} />
+                  <input type="number" step="any" placeholder="Longitude" value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})} />
                   <button 
                     type="button" 
                     onClick={handleAutoFillCity} 
                     disabled={apiLoading}
-                    style={{ padding: '8px', cursor: 'pointer', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px' }}
+                    style={{ backgroundColor: '#f0f4f8', color: '#4a90e2', border: 'none', fontWeight: 600, padding: '10px' }}
                   >
-                    {apiLoading ? 'Buscando...' : 'Auto-preencher via API'}
+                    {apiLoading ? 'Buscando...' : 'Auto-preencher Cidade'}
                   </button>
                 </>
               )}
             </div>
-            <div style={{ marginTop: '15px' }}>
-              <button onClick={handleCreate} style={{ padding: '10px 20px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Salvar</button>
-              <button onClick={() => setIsAdding(null)} style={{ padding: '10px 20px', marginLeft: '10px', cursor: 'pointer', border: '1px solid #ccc', borderRadius: '4px' }}>Cancelar</button>
+            <div style={{ marginTop: '20px', display: 'flex', gap: '12px' }}>
+              <button onClick={handleCreate} style={{ padding: '10px 24px', backgroundColor: '#4a90e2', color: '#fff', border: 'none', fontWeight: 600 }}>Salvar</button>
+              <button onClick={() => setIsAdding(null)} style={{ padding: '10px 24px', backgroundColor: 'transparent', border: '1px solid #e1e8ed', color: '#7f8c8d' }}>Cancelar</button>
             </div>
           </div>
         )}
       </div>
 
-      <div style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '20px', backgroundColor: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '20px' }}>
-        <h3 style={{ marginTop: 0, borderBottom: '1px solid #eee', paddingBottom: '10px' }}>Detalhes do Local</h3>
+      <div style={{ border: 'none', borderRadius: '16px', padding: '24px', backgroundColor: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', marginBottom: '24px' }}>
+        <h3 style={{ marginTop: 0, borderBottom: '1px solid #f0f4f8', paddingBottom: '16px', color: '#34495e' }}>Detalhes do Local</h3>
         
         {loading ? (
-          <p>Carregando...</p>
+          <p style={{ color: '#4a90e2' }}>Carregando dados...</p>
         ) : activeItem ? (
           <div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '15px', marginBottom: '20px' }}>
-              <div><strong>Tipo:</strong> {activeType}</div>
-              <div><strong>Nome:</strong> {isEditing ? (
-                <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={{ padding: '5px' }} />
-              ) : activeItem.name}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#bdc3c7', display: 'block', marginBottom: '4px' }}>TIPO</label>
+                <span style={{ fontWeight: 600, color: '#4a90e2' }}>{activeType?.toUpperCase()}</span>
+              </div>
+              
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#bdc3c7', display: 'block', marginBottom: '4px' }}>NOME</label>
+                {isEditing ? (
+                  <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={{ width: '100%' }} />
+                ) : <span style={{ fontSize: '1.1rem', fontWeight: 600 }}>{activeItem.name}</span>}
+              </div>
               
               {activeType === 'Continente' && (
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <strong>Descrição:</strong> {isEditing ? (
-                    <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} style={{ width: '100%', padding: '5px' }} />
-                  ) : (selectedContinent as Continent).description || 'N/A'}
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#bdc3c7', display: 'block', marginBottom: '4px' }}>DESCRIÇÃO</label>
+                  {isEditing ? (
+                    <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} style={{ width: '100%', minHeight: '80px' }} />
+                  ) : <p style={{ margin: 0, lineHeight: 1.6 }}>{(selectedContinent as Continent).description || 'Sem descrição.'}</p>}
                 </div>
               )}
 
               {activeType === 'País' && (
                 <>
                   {externalCountry && (
-                    <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '20px', backgroundColor: '#f0f8ff', padding: '15px', borderRadius: '8px', border: '1px solid #b8daff', marginBottom: '10px' }}>
-                      <img src={externalCountry.flags.svg} alt="Bandeira" style={{ width: '100px', border: '1px solid #ccc' }} />
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', flex: 1 }}>
-                        <div><strong>Capital:</strong> {externalCountry.capital?.[0] || 'N/A'}</div>
-                        <div><strong>Área:</strong> {externalCountry.area.toLocaleString()} km²</div>
-                        <div><strong>População (API):</strong> {externalCountry.population.toLocaleString()}</div>
-                        <div><strong>Idiomas (API):</strong> {externalCountry.languages ? Object.values(externalCountry.languages).join(', ') : 'N/A'}</div>
-                        <div><strong>Moedas (API):</strong> {externalCountry.currencies ? Object.values(externalCountry.currencies).map(c => `${c.name} (${c.symbol})`).join(', ') : 'N/A'}</div>
+                    <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '24px', backgroundColor: '#f0f7ff', padding: '20px', borderRadius: '12px', border: '1px solid #d0e7ff', marginBottom: '16px' }}>
+                      <img src={externalCountry.flags.svg} alt="Bandeira" style={{ width: '120px', borderRadius: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }} />
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px', flex: 1 }}>
+                        <div><strong>Capital:</strong><br/>{externalCountry.capital?.[0] || 'N/A'}</div>
+                        <div><strong>Área:</strong><br/>{externalCountry.area.toLocaleString()} km²</div>
+                        <div><strong>População:</strong><br/>{externalCountry.population.toLocaleString()}</div>
+                        <div><strong>Idiomas:</strong><br/>{externalCountry.languages ? Object.values(externalCountry.languages).join(', ') : 'N/A'}</div>
                       </div>
                     </div>
                   )}
 
                   {!isEditing && (
                     <>
-                      <div><strong>Nome Exato (DB):</strong> {selectedCountry?.exactName || 'N/A'}</div>
-                      <div><strong>População (DB):</strong> {selectedCountry?.population?.toLocaleString() || 'N/A'}</div>
-                      <div><strong>Idioma (DB):</strong> {selectedCountry?.officialLanguage || 'N/A'}</div>
-                      <div><strong>Moeda (DB):</strong> {selectedCountry?.currency || 'N/A'}</div>
+                      <div><strong>População (DB):</strong><br/>{selectedCountry?.population?.toLocaleString() || 'N/A'}</div>
+                      <div><strong>Idioma (DB):</strong><br/>{selectedCountry?.officialLanguage || 'N/A'}</div>
+                      <div><strong>Moeda (DB):</strong><br/>{selectedCountry?.currency || 'N/A'}</div>
                     </>
                   )}
 
                   {isEditing && (
                     <>
-                      <div><strong>Nome Exato:</strong> <input type="text" value={formData.exactName} onChange={e => setFormData({...formData, exactName: e.target.value})} style={{ padding: '5px' }} /></div>
-                      <div><strong>População:</strong> <input type="number" value={formData.population} onChange={e => setFormData({...formData, population: e.target.value})} style={{ padding: '5px' }} /></div>
-                      <div><strong>Idioma:</strong> <input type="text" value={formData.officialLanguage} onChange={e => setFormData({...formData, officialLanguage: e.target.value})} style={{ padding: '5px' }} /></div>
-                      <div><strong>Moeda:</strong> <input type="text" value={formData.currency} onChange={e => setFormData({...formData, currency: e.target.value})} style={{ padding: '5px' }} /></div>
-                      <div style={{ gridColumn: '1 / -1', marginTop: '5px' }}>
-                        <button 
-                          type="button" 
-                          onClick={handleAutoFillCountry} 
-                          disabled={apiLoading}
-                          style={{ padding: '5px 10px', cursor: 'pointer', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', fontSize: '0.85em' }}
-                        >
-                          {apiLoading ? 'Buscando...' : 'Usar API'}
-                        </button>
+                      <div><label>População:</label><input type="number" value={formData.population} onChange={e => setFormData({...formData, population: e.target.value})} style={{ width: '100%' }} /></div>
+                      <div><label>Idioma:</label><input type="text" value={formData.officialLanguage} onChange={e => setFormData({...formData, officialLanguage: e.target.value})} style={{ width: '100%' }} /></div>
+                      <div><label>Moeda:</label><input type="text" value={formData.currency} onChange={e => setFormData({...formData, currency: e.target.value})} style={{ width: '100%' }} /></div>
+                      <div style={{ gridColumn: '1 / -1', marginTop: '8px' }}>
+                        <button onClick={handleAutoFillCountry} disabled={apiLoading} style={{ backgroundColor: '#f0f4f8', color: '#4a90e2', border: 'none', padding: '8px 16px', fontWeight: 600 }}>Recarregar via API</button>
                       </div>
                     </>
                   )}
@@ -824,8 +831,8 @@ const Dashboard: React.FC = () => {
               {activeType === 'Cidade' && (
                 <>
                   {apiLoading && !weather && (
-                    <div style={{ gridColumn: '1 / -1', padding: '15px', textAlign: 'center', backgroundColor: '#f0f2f5', borderRadius: '8px', marginBottom: '10px' }}>
-                      <small>Buscando informações climáticas em tempo real...</small>
+                    <div style={{ gridColumn: '1 / -1', padding: '16px', textAlign: 'center', backgroundColor: '#f8f9fa', borderRadius: '8px', color: '#4a90e2' }}>
+                      Buscando informações climáticas...
                     </div>
                   )}
 
@@ -834,110 +841,92 @@ const Dashboard: React.FC = () => {
                       gridColumn: '1 / -1', 
                       display: 'flex', 
                       alignItems: 'center', 
-                      gap: '20px', 
-                      backgroundColor: '#e6f7ff', 
-                      padding: '20px', 
-                      borderRadius: '12px', 
-                      border: '1px solid #91d5ff', 
-                      marginBottom: '15px',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                      gap: '24px', 
+                      backgroundColor: '#eef6ff', 
+                      padding: '24px', 
+                      borderRadius: '16px', 
+                      border: '1px solid #bcdbff', 
+                      marginBottom: '20px',
+                      boxShadow: '0 4px 12px rgba(74, 144, 226, 0.08)'
                     }}>
-                      <div style={{ backgroundColor: '#1890ff', borderRadius: '50%', padding: '5px' }}>
+                      <div style={{ backgroundColor: '#4a90e2', borderRadius: '50%', padding: '8px', boxShadow: '0 4px 12px rgba(74, 144, 226, 0.3)' }}>
                         <img 
                           src={`https://openweathermap.org/img/wn/${getWeatherInfo(weather.current_weather.weathercode).icon}@2x.png`} 
                           alt="Clima" 
                           style={{ width: '64px', height: '64px' }} 
                         />
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '15px', flex: 1 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '20px', flex: 1 }}>
                         <div>
-                          <small style={{ color: '#555', textTransform: 'uppercase', fontSize: '0.75em' }}>Clima Atual</small>
-                          <div style={{ fontSize: '1.1em', fontWeight: 'bold' }}>{getWeatherInfo(weather.current_weather.weathercode).desc}</div>
+                          <small style={{ color: '#5dade2', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem' }}>CONDIÇÃO</small>
+                          <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#2c3e50' }}>{getWeatherInfo(weather.current_weather.weathercode).desc}</div>
                         </div>
                         <div>
-                          <small style={{ color: '#555', textTransform: 'uppercase', fontSize: '0.75em' }}>Temperatura</small>
-                          <div style={{ fontSize: '1.4em', fontWeight: 'bold', color: '#0050b3' }}>{Math.round(weather.current_weather.temperature)}°C</div>
+                          <small style={{ color: '#5dade2', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem' }}>TEMPERATURA</small>
+                          <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#4a90e2' }}>{Math.round(weather.current_weather.temperature)}°C</div>
                         </div>
                         <div>
-                          <small style={{ color: '#555', textTransform: 'uppercase', fontSize: '0.75em' }}>Vento</small>
-                          <div>{weather.current_weather.windspeed} km/h</div>
+                          <small style={{ color: '#5dade2', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem' }}>VENTO</small>
+                          <div style={{ fontSize: '1.1rem', fontWeight: 600 }}>{weather.current_weather.windspeed} km/h</div>
                         </div>
                         <div>
-                          <small style={{ color: '#555', textTransform: 'uppercase', fontSize: '0.75em' }}>Período</small>
-                          <div>{weather.current_weather.is_day ? 'Dia' : 'Noite'}</div>
+                          <small style={{ color: '#5dade2', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.7rem' }}>PERÍODO</small>
+                          <div style={{ fontSize: '1.1rem', fontWeight: 600 }}>{weather.current_weather.is_day ? '☀ Dia' : '🌙 Noite'}</div>
                         </div>
                       </div>
                     </div>
                   )}
 
-                  <div><strong>População:</strong> {isEditing ? (
-                    <input type="number" value={formData.population} onChange={e => setFormData({...formData, population: e.target.value})} style={{ padding: '5px' }} />
+                  <div><strong>População:</strong><br/>{isEditing ? (
+                    <input type="number" value={formData.population} onChange={e => setFormData({...formData, population: e.target.value})} style={{ width: '100%' }} />
                   ) : (selectedCity as City).population?.toLocaleString() || 'N/A'}</div>
-                  <div><strong>Latitude:</strong> {isEditing ? (
-                    <input type="number" step="any" value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})} style={{ padding: '5px' }} />
+                  <div><strong>Latitude:</strong><br/>{isEditing ? (
+                    <input type="number" step="any" value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})} style={{ width: '100%' }} />
                   ) : (selectedCity as City).latitude || 'N/A'}</div>
-                  <div><strong>Longitude:</strong> {isEditing ? (
-                    <input type="number" step="any" value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})} style={{ padding: '5px' }} />
+                  <div><strong>Longitude:</strong><br/>{isEditing ? (
+                    <input type="number" step="any" value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})} style={{ width: '100%' }} />
                   ) : (selectedCity as City).longitude || 'N/A'}</div>
                   
                   {isEditing && (
-                    <div style={{ gridColumn: '1 / -1', marginTop: '5px' }}>
-                      <button 
-                        type="button" 
-                        onClick={handleAutoFillCity} 
-                        disabled={apiLoading}
-                        style={{ padding: '5px 10px', cursor: 'pointer', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', fontSize: '0.85em' }}
-                      >
-                        {apiLoading ? 'Buscando...' : 'Auto-preencher via API'}
-                      </button>
+                    <div style={{ gridColumn: '1 / -1', marginTop: '8px' }}>
+                      <button onClick={handleAutoFillCity} disabled={apiLoading} style={{ backgroundColor: '#f0f4f8', color: '#4a90e2', border: 'none', padding: '8px 16px', fontWeight: 600 }}>Recarregar via API</button>
                     </div>
                   )}
                 </>
               )}
             </div>
 
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '16px' }}>
               {isEditing ? (
                 <>
-                  <button onClick={handleUpdate} style={{ padding: '10px 20px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Salvar</button>
-                  <button onClick={() => setIsEditing(false)} style={{ padding: '10px 20px', cursor: 'pointer', border: '1px solid #ccc', borderRadius: '4px' }}>Cancelar</button>
+                  <button onClick={handleUpdate} style={{ padding: '12px 32px', backgroundColor: '#2ecc71', color: '#fff', border: 'none', fontWeight: 700 }}>SALVAR ALTERAÇÕES</button>
+                  <button onClick={() => setIsEditing(false)} style={{ padding: '12px 32px', backgroundColor: 'transparent', border: '1px solid #e1e8ed', color: '#7f8c8d' }}>CANCELAR</button>
                 </>
               ) : (
                 <>
-                  <button onClick={startEdit} style={{ padding: '10px 20px', backgroundColor: '#ffc107', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Editar</button>
-                  <button onClick={handleDelete} style={{ padding: '10px 20px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Excluir</button>
+                  <button onClick={startEdit} style={{ padding: '12px 32px', backgroundColor: '#4a90e2', color: '#fff', border: 'none', fontWeight: 700 }}>EDITAR</button>
+                  <button onClick={handleDelete} style={{ padding: '12px 32px', backgroundColor: 'transparent', border: '1px solid #ff7675', color: '#d63031', fontWeight: 600 }}>EXCLUIR</button>
                 </>
               )}
             </div>
           </div>
         ) : (
-          <p style={{ color: '#666', fontStyle: 'italic' }}>Selecione um local para ver detalhes.</p>
+          <div style={{ padding: '40px', textAlign: 'center', color: '#bdc3c7', border: '2px dashed #f0f4f8', borderRadius: '12px' }}>
+            <p style={{ margin: 0, fontSize: '1.1rem' }}>Selecione um local na navegação acima para visualizar ou editar os detalhes.</p>
+          </div>
         )}
       </div>
 
       {activeItem && children && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {children.subCountries.length > 0 && (
-            <div style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '20px', backgroundColor: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-              <h4 style={{ marginTop: 0 }}>Países ({children.subCountries.length})</h4>
-              <ul style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px', padding: 0, listStyle: 'none' }}>
+            <div style={{ border: 'none', borderRadius: '16px', padding: '24px', backgroundColor: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+              <h4 style={{ marginTop: 0, color: '#34495e', marginBottom: '20px' }}>Países em {activeItem.name}</h4>
+              <ul style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px', padding: 0, listStyle: 'none' }}>
                 {children.subCountries.map(c => (
-                  <li key={c.id} style={{ padding: '10px', border: '1px solid #eee', borderRadius: '4px', backgroundColor: '#fafafa' }}>
-                    <strong>{c.name}</strong><br/>
-                    <small>Pop: {c.population?.toLocaleString() || '-'}</small>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {children.subStates.length > 0 && (
-            <div style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '20px', backgroundColor: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-              <h4 style={{ marginTop: 0 }}>Estados ({children.subStates.length})</h4>
-              <ul style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px', padding: 0, listStyle: 'none' }}>
-                {children.subStates.map(s => (
-                  <li key={s.id} style={{ padding: '10px', border: '1px solid #eee', borderRadius: '4px', backgroundColor: '#fafafa' }}>
-                    {s.name}
+                  <li key={c.id} style={{ padding: '16px', border: '1px solid #f0f4f8', borderRadius: '12px', backgroundColor: '#fff', transition: 'all 0.2s ease' }}>
+                    <div style={{ fontWeight: 700, color: '#2c3e50', marginBottom: '4px' }}>{c.name}</div>
+                    <small style={{ color: '#7f8c8d' }}>População: {c.population?.toLocaleString() || '-'}</small>
                   </li>
                 ))}
               </ul>
@@ -945,13 +934,13 @@ const Dashboard: React.FC = () => {
           )}
 
           {children.subCities.length > 0 && (
-            <div style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '20px', backgroundColor: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-              <h4 style={{ marginTop: 0 }}>Cidades ({children.subCities.length})</h4>
-              <ul style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px', padding: 0, listStyle: 'none' }}>
+            <div style={{ border: 'none', borderRadius: '16px', padding: '24px', backgroundColor: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+              <h4 style={{ marginTop: 0, color: '#34495e', marginBottom: '20px' }}>Cidades em {activeItem.name}</h4>
+              <ul style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px', padding: 0, listStyle: 'none' }}>
                 {children.subCities.map(c => (
-                  <li key={c.id} style={{ padding: '10px', border: '1px solid #eee', borderRadius: '4px', backgroundColor: '#fafafa' }}>
-                    <strong>{c.name}</strong><br/>
-                    <small>Pop: {c.population?.toLocaleString() || '-'}</small>
+                  <li key={c.id} style={{ padding: '16px', border: '1px solid #f0f4f8', borderRadius: '12px', backgroundColor: '#fff' }}>
+                    <div style={{ fontWeight: 700, color: '#2c3e50', marginBottom: '4px' }}>{c.name}</div>
+                    <small style={{ color: '#7f8c8d' }}>População: {c.population?.toLocaleString() || '-'}</small>
                   </li>
                 ))}
               </ul>
@@ -960,7 +949,12 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {error && <div style={{ color: 'red', marginTop: '20px', padding: '10px', border: '1px solid red', borderRadius: '4px', backgroundColor: '#fff' }}>{error}</div>}
+      {error && (
+        <div style={{ position: 'fixed', bottom: '24px', right: '24px', color: '#fff', padding: '16px 24px', borderRadius: '12px', backgroundColor: '#e74c3c', boxShadow: '0 8px 24px rgba(231, 76, 60, 0.25)', fontWeight: 600 }}>
+          {error}
+          <button onClick={() => setError('')} style={{ marginLeft: '16px', background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontWeight: 800 }}>✕</button>
+        </div>
+      )}
     </div>
   );
 };
