@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { CityService } from '../services/CityService';
+import { CityService } from '../services/CityService.js';
 
 const cityService = new CityService();
 

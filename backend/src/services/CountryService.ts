@@ -1,4 +1,4 @@
-import { prisma } from "../config/prisma";
+import { prisma } from "../config/prisma.js";
 
 // 1. Unificamos a interface aqui no topo com todos os campos necessários
 interface CreateCountryData {

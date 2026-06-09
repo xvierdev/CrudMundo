@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { UserService } from '../services/UserService';
+import { UserService } from '../services/UserService.js';
 
 const userService = new UserService();
 
@@ -21,6 +21,22 @@ export class UserController {
       return res.json(users);
     } catch (error: any) {
       return res.status(500).json({ error: "Erro interno no servidor." });
+    }
+  }
+
+  updatePassword = async (req: Request, res: Response) => {
+    try {
+      const { password } = req.body;
+      const userId = (req as any).user_id; // Pegamos do middleware isAuthenticated
+
+      if (!userId) {
+        return res.status(401).json({ error: "Usuário não autenticado." });
+      }
+
+      const result = await userService.executeUpdatePassword(userId, password);
+      return res.json(result);
+    } catch (error: any) {
+      return res.status(400).json({ error: error.message });
     }
   }
 }

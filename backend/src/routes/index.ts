@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { UserController } from '../controllers/UserController';
-import { AuthController } from '../controllers/AuthController';
-import { ContinentController } from '../controllers/ContinentController';
-import { CountryController } from '../controllers/CountryController';
-import { StateController } from '../controllers/StateController';
-import { CityController } from '../controllers/CityController';
-import { isAuthenticated } from '../middlewares/isAuthenticated';
+import { UserController } from '../controllers/UserController.js';
+import { AuthController } from '../controllers/AuthController.js';
+import { ContinentController } from '../controllers/ContinentController.js';
+import { CountryController } from '../controllers/CountryController.js';
+import { StateController } from '../controllers/StateController.js';
+import { CityController } from '../controllers/CityController.js';
+import { isAuthenticated } from '../middlewares/isAuthenticated.js';
 
 const routes = Router();
 const userController = new UserController();
@@ -21,6 +21,9 @@ routes.get('/users', userController.list); // teste: remover no deploy
 routes.post('/login', authController.login);
 
 //rotas privadas (Autenticadas)
+
+// User Profile
+routes.put('/users/password', isAuthenticated, userController.updatePassword);
 
 // Continents
 routes.get('/continents', isAuthenticated, continentController.list);

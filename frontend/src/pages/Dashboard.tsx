@@ -78,6 +78,8 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState('');
   const [isAdding, setIsAdding] = useState<'continent' | 'country' | 'state' | 'city' | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
 
   // External Data
   const [externalCountry, setExternalCountry] = useState<ExternalCountryData | null>(null);
@@ -100,6 +102,22 @@ const Dashboard: React.FC = () => {
     localStorage.removeItem('@CrudMundo:user');
     navigate('/');
   }, [navigate]);
+
+  const handleChangePassword = async () => {
+    if (!newPassword || newPassword.length < 6) {
+      setError('A senha deve ter pelo menos 6 caracteres.');
+      return;
+    }
+    setError('');
+    try {
+      await api.put('/users/password', { password: newPassword });
+      setShowPasswordModal(false);
+      setNewPassword('');
+      alert('Senha alterada com sucesso!');
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Erro ao alterar senha.');
+    }
+  };
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -456,7 +474,7 @@ const Dashboard: React.FC = () => {
     setError('');
     try {
       let endpoint = '';
-      let data: any = { name: formData.name };
+      const data: any = { name: formData.name };
 
       if (isAdding === 'continent') {
         endpoint = '/continents';
@@ -494,7 +512,7 @@ const Dashboard: React.FC = () => {
     setError('');
     try {
       let endpoint = '';
-      let data: any = { name: formData.name };
+      const data: any = { name: formData.name };
 
       if (selectedCity) {
         endpoint = `/cities/${selectedCity.id}`;
@@ -602,10 +620,66 @@ const Dashboard: React.FC = () => {
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', borderBottom: '1px solid #e1e8ed', paddingBottom: '16px' }}>
         <h2 style={{ margin: 0, color: '#2c3e50', fontWeight: 700, letterSpacing: '-0.5px' }}>CrudMundo <span style={{ color: '#4a90e2', fontWeight: 400 }}>Explorer</span></h2>
         <div>
-          <span style={{ marginRight: '16px', color: '#7f8c8d' }}>Olá, <strong style={{ color: '#2c3e50' }}>{user?.name}</strong></span>
+          <span style={{ marginRight: '16px', color: '#7f8c8d' }}>
+            Olá, <strong 
+              style={{ color: '#4a90e2', cursor: 'pointer', textDecoration: 'underline' }} 
+              onClick={() => setShowPasswordModal(true)}
+              title="Clique para alterar sua senha"
+            >
+              {user?.name}
+            </strong>
+          </span>
           <button onClick={handleLogout} style={{ padding: '8px 16px', cursor: 'pointer', backgroundColor: '#fff', border: '1px solid #e1e8ed', color: '#e74c3c', fontWeight: 500 }}>Sair</button>
         </div>
       </header>
+
+      {showPasswordModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: '#fff',
+            padding: '24px',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '400px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
+          }}>
+            <h3 style={{ marginTop: 0, color: '#2c3e50' }}>Alterar Senha</h3>
+            <p style={{ color: '#7f8c8d', fontSize: '0.9rem' }}>Digite sua nova senha abaixo.</p>
+            <input 
+              type="password" 
+              placeholder="Nova senha (min. 6 caracteres)" 
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              style={{ width: '100%', marginBottom: '20px', boxSizing: 'border-box' }}
+            />
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                onClick={handleChangePassword}
+                style={{ flex: 1, padding: '12px', backgroundColor: '#4a90e2', color: '#fff', border: 'none', fontWeight: 600 }}
+              >
+                Salvar
+              </button>
+              <button 
+                onClick={() => { setShowPasswordModal(false); setNewPassword(''); }}
+                style={{ flex: 1, padding: '12px', backgroundColor: 'transparent', border: '1px solid #e1e8ed', color: '#7f8c8d' }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ border: 'none', borderRadius: '16px', padding: '24px', marginBottom: '24px', backgroundColor: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>

@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { CountryService } from '../services/CountryService';
+import { CountryService } from '../services/CountryService.js';
 
 const countryService = new CountryService();
 

@@ -22,7 +22,8 @@ export function isAuthenticated(req: Request, res: Response, next: NextFunction)
         const secret = process.env.JWT_SECRET as string;
         const { sub } = jwt.verify(token, secret) as TokenPayload;
 
-        req.headers['x-user-id'] = sub;
+        // Injetamos o ID do usuário diretamente no objeto de requisição
+        (req as any).user_id = sub;
 
         return next();
     } catch (error) {
@@ -32,6 +33,6 @@ export function isAuthenticated(req: Request, res: Response, next: NextFunction)
 
 /*
 // usar isso nas outras rotas
-import { isAuthenticated } from '../middlewares/isAuthenticated';
+import { isAuthenticated } from '../middlewares/isAuthenticated.js';
 routes.get('/continents', isAuthenticated, locationController.list);
 */

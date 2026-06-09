@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { StateService } from '../services/StateService';
+import { StateService } from '../services/StateService.js';
 
 const stateService = new StateService();
 

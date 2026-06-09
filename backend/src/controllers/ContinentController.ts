@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { ContinentService } from "../services/ContinentService";
+import { ContinentService } from "../services/ContinentService.js";
 
 const continentService = new ContinentService();
 

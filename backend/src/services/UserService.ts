@@ -1,4 +1,4 @@
-import { prisma } from '../config/prisma';
+import { prisma } from '../config/prisma.js';
 import bcrypt from 'bcrypt';
 
 // Definindo a interface para criação de usuário
@@ -55,5 +55,20 @@ export class UserService {
                 updatedAt: true
             }
         });
+    }
+
+    async executeUpdatePassword(userId: string, newPassword: string) {
+        if (!newPassword || newPassword.length < 6) {
+            throw new Error("A senha deve ter pelo menos 6 caracteres.");
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        await prisma.user.update({
+            where: { id: userId },
+            data: { password: hashedPassword }
+        });
+
+        return { message: "Senha atualizada com sucesso." };
     }
 }

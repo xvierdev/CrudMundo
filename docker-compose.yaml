@@ -1,0 +1,73 @@
+services:
+  dbms:
+    image: postgres:18-alpine
+    container_name: dbms_postgresql
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: aluno
+      POSTGRES_PASSWORD: fatec
+      POSTGRES_DB: crudmundo
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aluno -d crudmundo"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+  migration:
+    build:
+      context: ./backend
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+    image: crudmundo-backend-img
+    container_name: crudmundo-migration
+    command: npx prisma migrate deploy
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      dbms:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: ./backend
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+    container_name: crudmundo-backend
+    restart: always
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: 3001
+    ports:
+      - "3001:3001"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_GROQ_API_KEY: ${VITE_GROQ_API_KEY}
+    container_name: crudmundo-frontend
+    hostname: crudmundo
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "8082:8082"
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: crudmundo-tunnel
+    restart: always
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    depends_on:
+      - frontend
+
+volumes:
+  postgres_data:
