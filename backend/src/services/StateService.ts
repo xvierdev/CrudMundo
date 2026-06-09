@@ -27,6 +27,9 @@ export class StateService {
     }
 
     async executeCreate({ name, countryId }: CreateStateData) {
+        if (!name || name.trim().length < 3) {
+            throw new Error("O nome do estado deve ter pelo menos 3 caracteres.");
+        }
         const countryExists = await prisma.country.findUnique({
             where: { id: countryId }
         });
@@ -51,6 +54,9 @@ export class StateService {
     }
 
     async executeUpdate(id: string, { name, countryId }: Partial<CreateStateData>) {
+        if (name !== undefined && name.trim().length < 3) {
+            throw new Error("O nome do estado deve ter pelo menos 3 caracteres.");
+        }
         const stateExists = await prisma.state.findUnique({
             where: { id }
         });

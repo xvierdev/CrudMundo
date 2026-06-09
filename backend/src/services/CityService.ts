@@ -27,6 +27,18 @@ export class CityService {
     }
 
     async executeCreate({ name, stateId, countryId, population, latitude, longitude }: CreateCityData) {
+        if (!name || name.trim().length < 3) {
+            throw new Error("O nome da cidade deve ter pelo menos 3 caracteres.");
+        }
+        if (latitude !== undefined && (latitude < -90 || latitude > 90)) {
+            throw new Error("A latitude deve estar entre -90 e 90.");
+        }
+        if (longitude !== undefined && (longitude < -180 || longitude > 180)) {
+            throw new Error("A longitude deve estar entre -180 e 180.");
+        }
+        if (population && (population < 0 || population > 1000000000000)) {
+            throw new Error("A população deve ser um número positivo e não maior que 1 trilhão.");
+        }
         if (stateId) {
             const cityExistsInState = await prisma.city.findFirst({
                 where: { name, stateId }
@@ -52,6 +64,18 @@ export class CityService {
     }
 
     async executeUpdate(id: string, data: Partial<CreateCityData>) {
+        if (data.name !== undefined && data.name.trim().length < 3) {
+            throw new Error("O nome da cidade deve ter pelo menos 3 caracteres.");
+        }
+        if (data.population && (data.population < 0 || data.population > 1000000000000)) {
+            throw new Error("A população deve ser um número positivo e não maior que 1 trilhão.");
+        }
+        if (data.latitude !== undefined && (data.latitude < -90 || data.latitude > 90)) {
+            throw new Error("A latitude deve estar entre -90 e 90.");
+        }
+        if (data.longitude !== undefined && (data.longitude < -180 || data.longitude > 180)) {
+            throw new Error("A longitude deve estar entre -180 e 180.");
+        }
         const cityExists = await prisma.city.findUnique({ where: { id } });
         if (!cityExists) throw new Error("Cidade não encontrada.");
 

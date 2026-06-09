@@ -39,7 +39,7 @@ const Register: React.FC = () => {
       <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', width: '300px' }}>
         <input
           type="text"
-          placeholder="Nome"
+          placeholder="Seu nome completo"
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
@@ -47,14 +47,14 @@ const Register: React.FC = () => {
         />
         <input
           type="email"
-          placeholder="Email"
+          placeholder="seu@email.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           style={{ marginBottom: '10px', padding: '8px' }}
         />
         <input
           type="password"
-          placeholder="Senha"
+          placeholder="Mínimo 6 caracteres"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required

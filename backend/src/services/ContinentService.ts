@@ -28,6 +28,9 @@ export class ContinentService {
     }
 
     async executeCreate(name: string, description?: string) {
+        if (!name || name.trim().length < 2) {
+            throw new Error("O nome do continente deve ter pelo menos 2 caracteres.");
+        }
         const continentExists = await prisma.continent.findUnique({
             where: { name }
         });
@@ -41,6 +44,9 @@ export class ContinentService {
     }
 
     async executeUpdate(id: string, name: string, description?: string) {
+        if (!name || name.trim().length < 2) {
+            throw new Error("O nome do continente deve ter pelo menos 2 caracteres.");
+        }
         const continentExists = await prisma.continent.findUnique({ where: { id } });
         if (!continentExists) throw new Error("Continente não encontrado.");
         return await prisma.continent.update({

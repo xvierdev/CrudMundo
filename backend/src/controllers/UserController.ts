@@ -26,14 +26,14 @@ export class UserController {
 
   updatePassword = async (req: Request, res: Response) => {
     try {
-      const { password } = req.body;
+      const { oldPassword, newPassword } = req.body;
       const userId = (req as any).user_id; // Pegamos do middleware isAuthenticated
 
       if (!userId) {
         return res.status(401).json({ error: "Usuário não autenticado." });
       }
 
-      const result = await userService.executeUpdatePassword(userId, password);
+      const result = await userService.executeUpdatePassword(userId, oldPassword, newPassword);
       return res.json(result);
     } catch (error: any) {
       return res.status(400).json({ error: error.message });

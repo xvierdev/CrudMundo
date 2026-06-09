@@ -40,7 +40,7 @@ const Login: React.FC = () => {
       <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', width: '300px' }}>
         <input
           type="email"
-          placeholder="Email"
+          placeholder="seu@email.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -48,7 +48,7 @@ const Login: React.FC = () => {
         />
         <input
           type="password"
-          placeholder="Senha"
+          placeholder="Sua senha"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required

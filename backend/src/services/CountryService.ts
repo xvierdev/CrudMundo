@@ -31,6 +31,12 @@ export class CountryService {
 
     // Método para criar
     async executeCreate({ name, continentId, exactName, population, officialLanguage, currency }: CreateCountryData) {
+        if (!name || name.trim().length < 3) {
+            throw new Error("O nome do país deve ter pelo menos 3 caracteres.");
+        }
+        if (population && (Number(population) < 0 || Number(population) > 1000000000000)) {
+            throw new Error("A população deve ser um número positivo e não maior que 1 trilhão.");
+        }
         const continentExists = await prisma.continent.findUnique({ where: { id: continentId } });
         if (!continentExists) throw new Error("O continente informado não existe.");
 
@@ -51,6 +57,12 @@ export class CountryService {
 
     // Método para atualizar
     async executeUpdate(id: string, data: Partial<CreateCountryData>) {
+        if (data.name !== undefined && (data.name.trim().length < 3)) {
+            throw new Error("O nome do país deve ter pelo menos 3 caracteres.");
+        }
+        if (data.population && (Number(data.population) < 0 || Number(data.population) > 1000000000000)) {
+            throw new Error("A população deve ser um número positivo e não maior que 1 trilhão.");
+        }
         const countryExists = await prisma.country.findUnique({ where: { id } });
         if (!countryExists) throw new Error("País não encontrado.");
 

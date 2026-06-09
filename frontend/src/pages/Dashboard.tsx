@@ -80,6 +80,7 @@ const Dashboard: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [newPassword, setNewPassword] = useState('');
+  const [oldPassword, setOldPassword] = useState('');
 
   // External Data
   const [externalCountry, setExternalCountry] = useState<ExternalCountryData | null>(null);
@@ -104,15 +105,20 @@ const Dashboard: React.FC = () => {
   }, [navigate]);
 
   const handleChangePassword = async () => {
+    if (!oldPassword) {
+      setError('A senha antiga é obrigatória.');
+      return;
+    }
     if (!newPassword || newPassword.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres.');
+      setError('A nova senha deve ter pelo menos 6 caracteres.');
       return;
     }
     setError('');
     try {
-      await api.put('/users/password', { password: newPassword });
+      await api.put('/users/password', { oldPassword, newPassword });
       setShowPasswordModal(false);
       setNewPassword('');
+      setOldPassword('');
       alert('Senha alterada com sucesso!');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Erro ao alterar senha.');
@@ -470,7 +476,44 @@ const Dashboard: React.FC = () => {
   };
 
   const handleCreate = async () => {
-    if (!formData.name) return;
+    let minLen = 0;
+    let entityName = '';
+
+    if (isAdding === 'continent') {
+      minLen = 2;
+      entityName = 'continente';
+    } else if (isAdding === 'country') {
+      minLen = 3;
+      entityName = 'país';
+    } else if (isAdding === 'state') {
+      minLen = 3;
+      entityName = 'estado';
+    } else if (isAdding === 'city') {
+      minLen = 3;
+      entityName = 'cidade';
+    }
+
+    if (!formData.name || formData.name.trim().length < minLen) {
+      setError(`O nome do ${entityName} deve ter pelo menos ${minLen} caracteres.`);
+      return;
+    }
+
+    // Client-side validation: coordinate range
+    if (formData.latitude && (Number(formData.latitude) < -90 || Number(formData.latitude) > 90)) {
+      setError('A latitude deve estar entre -90 e 90.');
+      return;
+    }
+    if (formData.longitude && (Number(formData.longitude) < -180 || Number(formData.longitude) > 180)) {
+      setError('A longitude deve estar entre -180 e 180.');
+      return;
+    }
+
+    // Client-side validation: population limit
+    if (formData.population && (Number(formData.population) < 0 || Number(formData.population) > 1000000000000)) {
+      setError('A população deve ser um número positivo e não maior que 1 trilhão.');
+      return;
+    }
+
     setError('');
     try {
       let endpoint = '';
@@ -508,7 +551,44 @@ const Dashboard: React.FC = () => {
   };
 
   const handleUpdate = async () => {
-    if (!formData.name || !activeItem) return;
+    let minLen = 0;
+    let entityName = '';
+
+    if (selectedContinent) {
+      minLen = 2;
+      entityName = 'continente';
+    } else if (selectedCountry) {
+      minLen = 3;
+      entityName = 'país';
+    } else if (selectedState) {
+      minLen = 3;
+      entityName = 'estado';
+    } else if (selectedCity) {
+      minLen = 3;
+      entityName = 'cidade';
+    }
+
+    if (!formData.name || formData.name.trim().length < minLen) {
+      setError(`O nome do ${entityName} deve ter pelo menos ${minLen} caracteres.`);
+      return;
+    }
+
+    // Client-side validation: coordinate range
+    if (formData.latitude && (Number(formData.latitude) < -90 || Number(formData.latitude) > 90)) {
+      setError('A latitude deve estar entre -90 e 90.');
+      return;
+    }
+    if (formData.longitude && (Number(formData.longitude) < -180 || Number(formData.longitude) > 180)) {
+      setError('A longitude deve estar entre -180 e 180.');
+      return;
+    }
+
+    // Client-side validation: population limit
+    if (formData.population && (Number(formData.population) < 0 || Number(formData.population) > 1000000000000)) {
+      setError('A população deve ser um número positivo e não maior que 1 trilhão.');
+      return;
+    }
+
     setError('');
     try {
       let endpoint = '';
@@ -655,7 +735,14 @@ const Dashboard: React.FC = () => {
             boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
           }}>
             <h3 style={{ marginTop: 0, color: '#2c3e50' }}>Alterar Senha</h3>
-            <p style={{ color: '#7f8c8d', fontSize: '0.9rem' }}>Digite sua nova senha abaixo.</p>
+            <p style={{ color: '#7f8c8d', fontSize: '0.9rem' }}>Digite sua senha antiga e a nova senha abaixo.</p>
+            <input 
+              type="password" 
+              placeholder="Senha antiga" 
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+              style={{ width: '100%', marginBottom: '10px', boxSizing: 'border-box' }}
+            />
             <input 
               type="password" 
               placeholder="Nova senha (min. 6 caracteres)" 
@@ -786,24 +873,24 @@ const Dashboard: React.FC = () => {
           <div style={{ marginTop: '24px', padding: '24px', border: '1px solid #e1e8ed', borderRadius: '12px', backgroundColor: '#fcfdfe' }}>
             <h4 style={{ marginTop: 0, color: '#4a90e2' }}>Adicionar Novo(a) {isAdding === 'continent' ? 'Continente' : isAdding === 'country' ? 'País' : isAdding === 'state' ? 'Estado' : 'Cidade'}</h4>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
-              <input type="text" placeholder="Nome" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+              <input type="text" placeholder="Nome (Ex: Brasil)" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
               
               {isAdding === 'country' && (
-                <input type="text" placeholder="Nome Exato (Inglês p/ API)" value={formData.exactName} onChange={e => setFormData({...formData, exactName: e.target.value})} />
+                <input type="text" placeholder="Nome Exato (Ex: Brazil)" value={formData.exactName} onChange={e => setFormData({...formData, exactName: e.target.value})} />
               )}
 
               {isAdding === 'continent' && (
-                <input type="text" placeholder="Descrição" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+                <input type="text" placeholder="Descrição (Ex: Maior país da América do Sul)" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
               )}
               
               {(isAdding === 'country' || isAdding === 'city') && (
-                <input type="number" placeholder="População" value={formData.population} onChange={e => setFormData({...formData, population: e.target.value})} />
+                <input type="number" placeholder="População (Ex: 214000000)" value={formData.population} onChange={e => setFormData({...formData, population: e.target.value})} />
               )}
               
               {isAdding === 'country' && (
                 <>
-                  <input type="text" placeholder="Idioma Oficial" value={formData.officialLanguage} onChange={e => setFormData({...formData, officialLanguage: e.target.value})} />
-                  <input type="text" placeholder="Moeda" value={formData.currency} onChange={e => setFormData({...formData, currency: e.target.value})} />
+                  <input type="text" placeholder="Idioma (Ex: Português)" value={formData.officialLanguage} onChange={e => setFormData({...formData, officialLanguage: e.target.value})} />
+                  <input type="text" placeholder="Moeda (Ex: Real)" value={formData.currency} onChange={e => setFormData({...formData, currency: e.target.value})} />
                   <button 
                     type="button" 
                     onClick={handleAutoFillCountry} 
@@ -817,8 +904,8 @@ const Dashboard: React.FC = () => {
               
               {isAdding === 'city' && (
                 <>
-                  <input type="number" step="any" placeholder="Latitude" value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})} />
-                  <input type="number" step="any" placeholder="Longitude" value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})} />
+                  <input type="number" step="any" placeholder="Latitude (Ex: -15.79)" value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})} />
+                  <input type="number" step="any" placeholder="Longitude (Ex: -47.88)" value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})} />
                   <button 
                     type="button" 
                     onClick={handleAutoFillCity} 

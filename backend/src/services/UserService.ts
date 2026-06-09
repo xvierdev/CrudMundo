@@ -61,9 +61,17 @@ export class UserService {
         });
     }
 
-    async executeUpdatePassword(userId: string, newPassword: string) {
+    async executeUpdatePassword(userId: string, oldPassword: string, newPassword: string) {
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) throw new Error("Usuário não encontrado.");
+
+        const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password);
+        if (!isOldPasswordValid) {
+            throw new Error("A senha antiga está incorreta.");
+        }
+
         if (!newPassword || newPassword.length < 6) {
-            throw new Error("A senha deve ter pelo menos 6 caracteres.");
+            throw new Error("A nova senha deve ter pelo menos 6 caracteres.");
         }
 
         const hashedPassword = await bcrypt.hash(newPassword, 10);
