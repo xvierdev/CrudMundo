@@ -28,6 +28,15 @@ interface ExternalCountryData {
   currencies?: Record<string, { name: string; symbol: string }>;
 }
 
+interface WeatherData {
+  current_weather: {
+    temperature: number;
+    windspeed: number;
+    weathercode: number;
+    is_day: number;
+  };
+}
+
 interface State {
   id: string;
   name: string;
@@ -45,7 +54,10 @@ interface City {
 }
 
 const Dashboard: React.FC = () => {
-  const [user, setUser] = useState<any>(null);
+  const [user] = useState<any>(() => {
+    const storedUser = localStorage.getItem('@CrudMundo:user');
+    return storedUser ? JSON.parse(storedUser) : null;
+  });
   const navigate = useNavigate();
 
   // Data lists
@@ -69,6 +81,7 @@ const Dashboard: React.FC = () => {
 
   // External Data
   const [externalCountry, setExternalCountry] = useState<ExternalCountryData | null>(null);
+  const [weather, setWeather] = useState<WeatherData | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -113,17 +126,15 @@ const Dashboard: React.FC = () => {
   }, [handleLogout]);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('@CrudMundo:user');
     const token = localStorage.getItem('@CrudMundo:token');
 
-    if (!storedUser || !token) {
+    if (!user || !token) {
       navigate('/');
       return;
     }
 
-    setUser(JSON.parse(storedUser));
     loadData();
-  }, [navigate, loadData]);
+  }, [navigate, loadData, user]);
 
   // Derived filtered lists
   const filteredCountries = countries.filter(c => c.continentId === selectedContinent?.id);
@@ -215,6 +226,58 @@ const Dashboard: React.FC = () => {
     }
   }, [selectedCountry, fetchExternalCountry]);
 
+  const fetchWeather = useCallback(async (city: City) => {
+    if (!city.latitude || !city.longitude) {
+      console.warn(`Cidade ${city.name} sem coordenadas. Clima não disponível.`);
+      setWeather(null);
+      return;
+    }
+
+    setApiLoading(true);
+    setWeather(null);
+
+    try {
+      // Open-Meteo não precisa de API Key!
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.latitude}&longitude=${city.longitude}&current_weather=true&timezone=auto`;
+      
+      console.log(`Buscando clima (Open-Meteo) para ${city.name}:`, { lat: city.latitude, lon: city.longitude });
+      const response = await axios.get(url);
+      console.log('Resposta da Open-Meteo:', response.data);
+      setWeather(response.data);
+    } catch (err: any) {
+      console.error('Erro na Open-Meteo API:', err.message);
+      setWeather(null);
+    } finally {
+      setApiLoading(false);
+    }
+  }, []);
+
+  // Função auxiliar para traduzir códigos da Open-Meteo para ícones/descrições
+  const getWeatherInfo = (code: number) => {
+    const table: Record<number, { desc: string, icon: string }> = {
+      0: { desc: 'Céu Limpo', icon: '01d' },
+      1: { desc: 'Principalmente Limpo', icon: '02d' },
+      2: { desc: 'Parcialmente Nublado', icon: '03d' },
+      3: { desc: 'Encoberto', icon: '04d' },
+      45: { desc: 'Nevoeiro', icon: '50d' },
+      48: { desc: 'Nevoeiro com Geada', icon: '50d' },
+      51: { desc: 'Drizzle Leve', icon: '09d' },
+      61: { desc: 'Chuva Leve', icon: '10d' },
+      63: { desc: 'Chuva Moderada', icon: '10d' },
+      80: { desc: 'Pancadas de Chuva', icon: '09d' },
+      95: { desc: 'Trovoada', icon: '11d' },
+    };
+    return table[code] || { desc: 'Desconhecido', icon: '03d' };
+  };
+
+  useEffect(() => {
+    if (selectedCity) {
+      fetchWeather(selectedCity);
+    } else {
+      setWeather(null);
+    }
+  }, [selectedCity, fetchWeather]);
+
   const verifyCountryWithGroq = async (name: string, continent: string): Promise<string> => {
     const apiKey = import.meta.env.VITE_GROQ_API_KEY;
     if (!apiKey) {
@@ -304,6 +367,49 @@ const Dashboard: React.FC = () => {
     } catch (err: any) {
       console.error('Erro detalhado:', err);
       setError('Erro de conexão ou falha no serviço de verificação.');
+    } finally {
+      setApiLoading(false);
+    }
+  };
+
+  const handleAutoFillCity = async () => {
+    const cityName = formData.name;
+    const country = selectedCountry;
+
+    if (!cityName || !country) {
+      setError('Digite o nome da cidade e selecione o país primeiro.');
+      return;
+    }
+
+    setApiLoading(true);
+    setError('');
+
+    try {
+      // 1. Buscar Coordenadas via OpenStreetMap (Nominatim)
+      // A Nominatim é gratuita e muito precisa para nomes de cidades em português
+      const query = `${cityName}, ${country.name}`;
+      const geoUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
+      
+      const geoRes = await axios.get(geoUrl, {
+        headers: {
+          'Accept-Language': 'pt-BR,pt;q=0.9'
+        }
+      });
+
+      if (geoRes.data && geoRes.data.length > 0) {
+        const { lat, lon } = geoRes.data[0];
+        
+        setFormData({
+          ...formData,
+          latitude: lat.toString(),
+          longitude: lon.toString()
+        });
+      } else {
+        setError('Cidade não encontrada no OpenStreetMap.');
+      }
+    } catch (err) {
+      console.error('Erro ao buscar dados da cidade via OSM:', err);
+      setError('Erro ao consultar a API do OpenStreetMap.');
     } finally {
       setApiLoading(false);
     }
@@ -605,6 +711,14 @@ const Dashboard: React.FC = () => {
                 <>
                   <input type="number" step="any" placeholder="Latitude" value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})} style={{ padding: '8px' }} />
                   <input type="number" step="any" placeholder="Longitude" value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})} style={{ padding: '8px' }} />
+                  <button 
+                    type="button" 
+                    onClick={handleAutoFillCity} 
+                    disabled={apiLoading}
+                    style={{ padding: '8px', cursor: 'pointer', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px' }}
+                  >
+                    {apiLoading ? 'Buscando...' : 'Auto-preencher via API'}
+                  </button>
                 </>
               )}
             </div>
@@ -684,6 +798,53 @@ const Dashboard: React.FC = () => {
 
               {activeType === 'Cidade' && (
                 <>
+                  {apiLoading && !weather && (
+                    <div style={{ gridColumn: '1 / -1', padding: '15px', textAlign: 'center', backgroundColor: '#f0f2f5', borderRadius: '8px', marginBottom: '10px' }}>
+                      <small>Buscando informações climáticas em tempo real...</small>
+                    </div>
+                  )}
+
+                  {weather && (
+                    <div style={{ 
+                      gridColumn: '1 / -1', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '20px', 
+                      backgroundColor: '#e6f7ff', 
+                      padding: '20px', 
+                      borderRadius: '12px', 
+                      border: '1px solid #91d5ff', 
+                      marginBottom: '15px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                    }}>
+                      <div style={{ backgroundColor: '#1890ff', borderRadius: '50%', padding: '5px' }}>
+                        <img 
+                          src={`https://openweathermap.org/img/wn/${getWeatherInfo(weather.current_weather.weathercode).icon}@2x.png`} 
+                          alt="Clima" 
+                          style={{ width: '64px', height: '64px' }} 
+                        />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '15px', flex: 1 }}>
+                        <div>
+                          <small style={{ color: '#555', textTransform: 'uppercase', fontSize: '0.75em' }}>Clima Atual</small>
+                          <div style={{ fontSize: '1.1em', fontWeight: 'bold' }}>{getWeatherInfo(weather.current_weather.weathercode).desc}</div>
+                        </div>
+                        <div>
+                          <small style={{ color: '#555', textTransform: 'uppercase', fontSize: '0.75em' }}>Temperatura</small>
+                          <div style={{ fontSize: '1.4em', fontWeight: 'bold', color: '#0050b3' }}>{Math.round(weather.current_weather.temperature)}°C</div>
+                        </div>
+                        <div>
+                          <small style={{ color: '#555', textTransform: 'uppercase', fontSize: '0.75em' }}>Vento</small>
+                          <div>{weather.current_weather.windspeed} km/h</div>
+                        </div>
+                        <div>
+                          <small style={{ color: '#555', textTransform: 'uppercase', fontSize: '0.75em' }}>Período</small>
+                          <div>{weather.current_weather.is_day ? 'Dia' : 'Noite'}</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div><strong>População:</strong> {isEditing ? (
                     <input type="number" value={formData.population} onChange={e => setFormData({...formData, population: e.target.value})} style={{ padding: '5px' }} />
                   ) : (selectedCity as City).population?.toLocaleString() || 'N/A'}</div>
@@ -693,6 +854,19 @@ const Dashboard: React.FC = () => {
                   <div><strong>Longitude:</strong> {isEditing ? (
                     <input type="number" step="any" value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})} style={{ padding: '5px' }} />
                   ) : (selectedCity as City).longitude || 'N/A'}</div>
+                  
+                  {isEditing && (
+                    <div style={{ gridColumn: '1 / -1', marginTop: '5px' }}>
+                      <button 
+                        type="button" 
+                        onClick={handleAutoFillCity} 
+                        disabled={apiLoading}
+                        style={{ padding: '5px 10px', cursor: 'pointer', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', fontSize: '0.85em' }}
+                      >
+                        {apiLoading ? 'Buscando...' : 'Auto-preencher via API'}
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
             </div>
