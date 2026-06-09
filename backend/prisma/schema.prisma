@@ -45,7 +45,7 @@ model State {
   id          String @id @default(uuid())
   name        String
   countryId   String
-  country     Country @relation(fields: [countryId], references: [id])
+  country     Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
   cities      City[]
 
   @@unique([name, countryId])
@@ -58,7 +58,7 @@ model City {
   latitude    Float?   // Novo campo
   longitude   Float?   // Novo campo
   stateId     String?
-  state       State?   @relation(fields: [stateId], references: [id])
+  state       State?   @relation(fields: [stateId], references: [id], onDelete: Cascade)
   countryId   String
   country     Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
