@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import api from '../services/api';
 
 interface Continent {
@@ -15,6 +16,15 @@ interface Country {
   population?: number;
   officialLanguage?: string;
   currency?: string;
+}
+
+interface ExternalCountryData {
+  flags: { svg: string };
+  capital?: string[];
+  area: number;
+  population: number;
+  languages?: Record<string, string>;
+  currencies?: Record<string, { name: string; symbol: string }>;
 }
 
 interface State {
@@ -51,9 +61,13 @@ const Dashboard: React.FC = () => {
 
   // UI State
   const [loading, setLoading] = useState(false);
+  const [apiLoading, setApiLoading] = useState(false);
   const [error, setError] = useState('');
   const [isAdding, setIsAdding] = useState<'continent' | 'country' | 'state' | 'city' | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+
+  // External Data
+  const [externalCountry, setExternalCountry] = useState<ExternalCountryData | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -147,6 +161,61 @@ const Dashboard: React.FC = () => {
 
   const activeItem = selectedCity || selectedState || selectedCountry || selectedContinent;
   const activeType = selectedCity ? 'Cidade' : selectedState ? 'Estado' : selectedCountry ? 'País' : selectedContinent ? 'Continente' : null;
+
+  const fetchExternalCountry = useCallback(async (name: string) => {
+    setApiLoading(true);
+    try {
+      const response = await axios.get(`https://restcountries.com/v3.1/name/${encodeURIComponent(name)}?fullText=false`);
+      if (response.data && response.data.length > 0) {
+        setExternalCountry(response.data[0]);
+      } else {
+        setExternalCountry(null);
+      }
+    } catch (err) {
+      console.error('Erro ao buscar dados da API externa', err);
+      setExternalCountry(null);
+    } finally {
+      setApiLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedCountry) {
+      fetchExternalCountry(selectedCountry.name);
+    } else {
+      setExternalCountry(null);
+    }
+  }, [selectedCountry, fetchExternalCountry]);
+
+  const handleAutoFillCountry = async () => {
+    if (!formData.name) {
+      setError('Digite o nome do país primeiro para buscar os dados.');
+      return;
+    }
+    setApiLoading(true);
+    setError('');
+    try {
+      const response = await axios.get(`https://restcountries.com/v3.1/name/${encodeURIComponent(formData.name)}`);
+      if (response.data && response.data.length > 0) {
+        const data = response.data[0];
+        const lang = data.languages ? Object.values(data.languages)[0] : '';
+        const curr = data.currencies ? Object.values(data.currencies)[0].name : '';
+        
+        setFormData({
+          ...formData,
+          population: data.population.toString(),
+          officialLanguage: lang as string,
+          currency: curr as string
+        });
+      } else {
+        setError('País não encontrado na API externa.');
+      }
+    } catch (err) {
+      setError('Erro ao buscar dados para preenchimento automático.');
+    } finally {
+      setApiLoading(false);
+    }
+  };
 
   const handleBack = () => {
     if (selectedCity) setSelectedCity(null);
@@ -428,6 +497,14 @@ const Dashboard: React.FC = () => {
                 <>
                   <input type="text" placeholder="Idioma Oficial" value={formData.officialLanguage} onChange={e => setFormData({...formData, officialLanguage: e.target.value})} style={{ padding: '8px' }} />
                   <input type="text" placeholder="Moeda" value={formData.currency} onChange={e => setFormData({...formData, currency: e.target.value})} style={{ padding: '8px' }} />
+                  <button 
+                    type="button" 
+                    onClick={handleAutoFillCountry} 
+                    disabled={apiLoading}
+                    style={{ padding: '8px', cursor: 'pointer', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px' }}
+                  >
+                    {apiLoading ? 'Buscando...' : 'Auto-preencher via API'}
+                  </button>
                 </>
               )}
               
@@ -471,15 +548,44 @@ const Dashboard: React.FC = () => {
 
               {activeType === 'País' && (
                 <>
-                  <div><strong>População:</strong> {isEditing ? (
-                    <input type="number" value={formData.population} onChange={e => setFormData({...formData, population: e.target.value})} style={{ padding: '5px' }} />
-                  ) : (selectedCountry as Country).population?.toLocaleString() || 'N/A'}</div>
-                  <div><strong>Idioma:</strong> {isEditing ? (
-                    <input type="text" value={formData.officialLanguage} onChange={e => setFormData({...formData, officialLanguage: e.target.value})} style={{ padding: '5px' }} />
-                  ) : (selectedCountry as Country).officialLanguage || 'N/A'}</div>
-                  <div><strong>Moeda:</strong> {isEditing ? (
-                    <input type="text" value={formData.currency} onChange={e => setFormData({...formData, currency: e.target.value})} style={{ padding: '5px' }} />
-                  ) : (selectedCountry as Country).currency || 'N/A'}</div>
+                  {externalCountry && (
+                    <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '20px', backgroundColor: '#f0f8ff', padding: '15px', borderRadius: '8px', border: '1px solid #b8daff', marginBottom: '10px' }}>
+                      <img src={externalCountry.flags.svg} alt="Bandeira" style={{ width: '100px', border: '1px solid #ccc' }} />
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', flex: 1 }}>
+                        <div><strong>Capital:</strong> {externalCountry.capital?.[0] || 'N/A'}</div>
+                        <div><strong>Área:</strong> {externalCountry.area.toLocaleString()} km²</div>
+                        <div><strong>População (API):</strong> {externalCountry.population.toLocaleString()}</div>
+                        <div><strong>Idiomas (API):</strong> {externalCountry.languages ? Object.values(externalCountry.languages).join(', ') : 'N/A'}</div>
+                        <div><strong>Moedas (API):</strong> {externalCountry.currencies ? Object.values(externalCountry.currencies).map(c => `${c.name} (${c.symbol})`).join(', ') : 'N/A'}</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {!isEditing && (
+                    <>
+                      <div><strong>População (DB):</strong> {selectedCountry?.population?.toLocaleString() || 'N/A'}</div>
+                      <div><strong>Idioma (DB):</strong> {selectedCountry?.officialLanguage || 'N/A'}</div>
+                      <div><strong>Moeda (DB):</strong> {selectedCountry?.currency || 'N/A'}</div>
+                    </>
+                  )}
+
+                  {isEditing && (
+                    <>
+                      <div><strong>População:</strong> <input type="number" value={formData.population} onChange={e => setFormData({...formData, population: e.target.value})} style={{ padding: '5px' }} /></div>
+                      <div><strong>Idioma:</strong> <input type="text" value={formData.officialLanguage} onChange={e => setFormData({...formData, officialLanguage: e.target.value})} style={{ padding: '5px' }} /></div>
+                      <div><strong>Moeda:</strong> <input type="text" value={formData.currency} onChange={e => setFormData({...formData, currency: e.target.value})} style={{ padding: '5px' }} /></div>
+                      <div style={{ gridColumn: '1 / -1', marginTop: '5px' }}>
+                        <button 
+                          type="button" 
+                          onClick={handleAutoFillCountry} 
+                          disabled={apiLoading}
+                          style={{ padding: '5px 10px', cursor: 'pointer', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', fontSize: '0.85em' }}
+                        >
+                          {apiLoading ? 'Buscando...' : 'Usar API'}
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
 
