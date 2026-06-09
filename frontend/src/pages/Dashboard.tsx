@@ -386,26 +386,51 @@ const Dashboard: React.FC = () => {
 
     try {
       // 1. Buscar Coordenadas via OpenStreetMap (Nominatim)
-      // A Nominatim é gratuita e muito precisa para nomes de cidades em português
       const query = `${cityName}, ${country.name}`;
       const geoUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
       
       const geoRes = await axios.get(geoUrl, {
-        headers: {
-          'Accept-Language': 'pt-BR,pt;q=0.9'
-        }
+        headers: { 'Accept-Language': 'pt-BR,pt;q=0.9' }
       });
 
+      let lat = '';
+      let lon = '';
+      let population = formData.population;
+
       if (geoRes.data && geoRes.data.length > 0) {
-        const { lat, lon } = geoRes.data[0];
+        lat = geoRes.data[0].lat.toString();
+        lon = geoRes.data[0].lon.toString();
+      }
+
+      // 2. Buscar População via OpenDataSoft (Geonames dataset)
+      try {
+        const popUrl = `https://public.opendatasoft.com/api/records/1.0/search/?dataset=geonames-all-cities-with-a-population-1000&q=${encodeURIComponent(cityName)}&facet=country&refine.country=${encodeURIComponent(country.name)}`;
+        const popRes = await axios.get(popUrl);
         
+        if (popRes.data.records && popRes.data.records.length > 0) {
+          // Pega a população do registro mais relevante
+          const cityData = popRes.data.records[0].fields;
+          population = cityData.population.toString();
+          
+          // Se o OSM falhou mas o Geonames tem coordenadas, usamos as do Geonames
+          if (!lat && cityData.coordinates) {
+            lat = cityData.coordinates[0].toString();
+            lon = cityData.coordinates[1].toString();
+          }
+        }
+      } catch (popErr) {
+        console.warn('Não foi possível obter a população, mantendo apenas coordenadas.', popErr);
+      }
+
+      if (lat || population !== formData.population) {
         setFormData({
           ...formData,
-          latitude: lat.toString(),
-          longitude: lon.toString()
+          latitude: lat || formData.latitude,
+          longitude: lon || formData.longitude,
+          population: population
         });
       } else {
-        setError('Cidade não encontrada no OpenStreetMap.');
+        setError('Cidade não encontrada nas bases de dados.');
       }
     } catch (err) {
       console.error('Erro ao buscar dados da cidade via OSM:', err);
