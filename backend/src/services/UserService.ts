@@ -18,6 +18,10 @@ export class UserService {
             throw new Error("A senha é obrigatória");
         }
 
+        if (password.length < 6) {
+            throw new Error("A senha deve ter pelo menos 6 caracteres.");
+        }
+
         const userAlreadyExists = await prisma.user.findUnique({
             where: { email }
         });
