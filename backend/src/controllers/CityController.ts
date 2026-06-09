@@ -25,11 +25,11 @@ export class CityController {
 
     create = async (req: Request, res: Response) => {
         try {
-            const { name, stateId, countryId } = req.body;
+            const { name, stateId, countryId, population, latitude, longitude } = req.body;
             if (!name || !countryId) {
-                return res.status(400).json({ error: "O nome da cidade e o ID do país são obrigatórios." });
+                return res.status(400).json({ error: "Nome da cidade e ID do país são obrigatórios" });
             }
-            const city = await cityService.executeCreate({ name, stateId, countryId });
+            const city = await cityService.executeCreate({ name, stateId, countryId, population, latitude, longitude });
             return res.status(201).json(city);
         } catch (error: any) {
             return res.status(400).json({ error: error.message });
@@ -39,8 +39,8 @@ export class CityController {
     update = async (req: Request, res: Response) => {
         try {
             const { id } = req.params as { id: string };
-            const { name, stateId, countryId } = req.body;
-            const city = await cityService.executeUpdate(id, { name, stateId, countryId });
+            const { name, stateId, countryId, population, latitude, longitude } = req.body;
+            const city = await cityService.executeUpdate(id, { name, stateId, countryId, population, latitude, longitude });
             return res.json(city);
         } catch (error: any) {
             return res.status(400).json({ error: error.message });

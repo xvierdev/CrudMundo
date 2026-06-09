@@ -25,11 +25,11 @@ export class CountryController {
 
     create = async (req: Request, res: Response) => {
         try {
-            const { name, continentId } = req.body;
+            const { name, continentId, population, officialLanguage, currency } = req.body;
             if (!name || !continentId) {
                 return res.status(400).json({ error: "Nome do país ou ID do continente são obrigatórios" });
             }
-            const country = await countryService.executeCreate({ name, continentId });
+            const country = await countryService.executeCreate({ name, continentId, population, officialLanguage, currency });
             return res.status(201).json(country);
         } catch (error: any) {
             return res.status(400).json({ error: error.message });
@@ -39,8 +39,8 @@ export class CountryController {
     update = async (req: Request, res: Response) => {
         try {
             const { id } = req.params as { id: string };
-            const { name, continentId } = req.body;
-            const country = await countryService.executeUpdate(id, { name, continentId });
+            const { name, continentId, population, officialLanguage, currency } = req.body;
+            const country = await countryService.executeUpdate(id, { name, continentId, population, officialLanguage, currency });
             return res.json(country);
         } catch (error: any) {
             return res.status(400).json({ error: error.message });

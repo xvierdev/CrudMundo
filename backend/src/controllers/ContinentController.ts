@@ -34,9 +34,9 @@ export class ContinentController {
 
     create = async (req: Request, res: Response) => {
         try {
-            const { name } = req.body;
+            const { name, description } = req.body;
             if (!name) return res.status(400).json({ error: "O nome do continente é obrigatório." });
-            const continent = await continentService.executeCreate(name);
+            const continent = await continentService.executeCreate(name, description);
             return res.status(201).json(continent);
         } catch (error: any) {
             return res.status(400).json({ error: error.message });
@@ -46,9 +46,9 @@ export class ContinentController {
     update = async (req: Request, res: Response) => {
         try {
             const { id } = req.params as { id: string };
-            const { name } = req.body;
+            const { name, description } = req.body;
             if (!name) return res.status(400).json({ error: "O nome é obrigatório." });
-            const continent = await continentService.executeUpdate(id, name);
+            const continent = await continentService.executeUpdate(id, name, description);
             return res.json(continent);
         } catch (error: any) {
             return res.status(400).json({ error: error.message });

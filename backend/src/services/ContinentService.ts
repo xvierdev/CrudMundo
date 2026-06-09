@@ -27,20 +27,28 @@ export class ContinentService {
         });
     }
 
-    async executeCreate(name: string) {
+    async executeCreate(name: string, description?: string) {
         const continentExists = await prisma.continent.findUnique({
             where: { name }
         });
         if (continentExists) throw new Error("Este continente já está cadastrado.");
-        return await prisma.continent.create({ data: { name } });
+        return await prisma.continent.create({
+            data: {
+                name: name,
+                description: description ?? null
+            }
+        });
     }
 
-    async executeUpdate(id: string, name: string) {
+    async executeUpdate(id: string, name: string, description?: string) {
         const continentExists = await prisma.continent.findUnique({ where: { id } });
         if (!continentExists) throw new Error("Continente não encontrado.");
         return await prisma.continent.update({
             where: { id },
-            data: { name }
+            data: {
+                name: name,
+                description: description ?? null
+            }
         });
     }
 

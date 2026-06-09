@@ -3,6 +3,9 @@ import { prisma } from "../config/prisma";
 interface CreateCountryData {
     name: string;
     continentId: string;
+    population?: number;
+    officialLanguage?: string;
+    currency?: string;
 }
 
 export class CountryService {
@@ -22,7 +25,7 @@ export class CountryService {
         return country;
     }
 
-    async executeCreate({ name, continentId }: CreateCountryData) {
+    async executeCreate({ name, continentId, population, officialLanguage, currency }: CreateCountryData) {
         const continentExists = await prisma.continent.findUnique({ where: { id: continentId } });
         if (!continentExists) throw new Error("O continente informado não existe.");
 
@@ -30,7 +33,13 @@ export class CountryService {
         if (countryExists) throw new Error("Este país já está cadastrado.");
 
         return await prisma.country.create({
-            data: { name, continentId }
+            data: { 
+                name, 
+                continentId, 
+                population: population ? Number(population) : null,
+                officialLanguage: officialLanguage ?? null,
+                currency: currency ?? null,
+            }
         });
     }
 
@@ -38,9 +47,14 @@ export class CountryService {
         const countryExists = await prisma.country.findUnique({ where: { id } });
         if (!countryExists) throw new Error("País não encontrado.");
 
+        const updateData = { ...data };
+        if (updateData.population !== undefined) {
+            updateData.population = updateData.population ? Number(updateData.population) : null as any;
+        }
+
         return await prisma.country.update({
             where: { id },
-            data
+            data: updateData as any
         });
     }
 

@@ -4,6 +4,9 @@ interface CreateCityData {
     name: string;
     stateId?: string;
     countryId: string;
+    population?: number;
+    latitude?: number;
+    longitude?: number;
 }
 
 export class CityService {
@@ -23,7 +26,7 @@ export class CityService {
         return city;
     }
 
-    async executeCreate({ name, stateId, countryId }: CreateCityData) {
+    async executeCreate({ name, stateId, countryId, population, latitude, longitude }: CreateCityData) {
         if (stateId) {
             const cityExistsInState = await prisma.city.findFirst({
                 where: { name, stateId }
@@ -40,7 +43,10 @@ export class CityService {
             data: {
                 name: name,
                 countryId: countryId,
-                stateId: stateId ?? null
+                stateId: stateId ?? null,
+                population: population ? Number(population) : null,
+                latitude: latitude ? Number(latitude) : null,
+                longitude: longitude ? Number(longitude) : null
             }
         });
     }
@@ -49,9 +55,20 @@ export class CityService {
         const cityExists = await prisma.city.findUnique({ where: { id } });
         if (!cityExists) throw new Error("Cidade não encontrada.");
 
+        const updateData = { ...data };
+        if (updateData.population !== undefined) {
+            updateData.population = updateData.population ? Number(updateData.population) : null as any;
+        }
+        if (updateData.latitude !== undefined) {
+            updateData.latitude = updateData.latitude ? Number(updateData.latitude) : null as any;
+        }
+        if (updateData.longitude !== undefined) {
+            updateData.longitude = updateData.longitude ? Number(updateData.longitude) : null as any;
+        }
+
         return await prisma.city.update({
             where: { id },
-            data
+            data: updateData as any
         });
     }
 

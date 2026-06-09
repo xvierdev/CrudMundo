@@ -5,12 +5,16 @@ import api from '../services/api';
 interface Continent {
   id: string;
   name: string;
+  description?: string;
 }
 
 interface Country {
   id: string;
   name: string;
   continentId: string;
+  population?: number;
+  officialLanguage?: string;
+  currency?: string;
 }
 
 interface State {
@@ -24,6 +28,9 @@ interface City {
   name: string;
   stateId?: string | null;
   countryId: string;
+  population?: number;
+  latitude?: number;
+  longitude?: number;
 }
 
 const Dashboard: React.FC = () => {
@@ -47,7 +54,17 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState('');
   const [isAdding, setIsAdding] = useState<'continent' | 'country' | 'state' | 'city' | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [formName, setFormName] = useState('');
+
+  // Form State
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    population: '',
+    officialLanguage: '',
+    currency: '',
+    latitude: '',
+    longitude: ''
+  });
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem('@CrudMundo:token');
@@ -96,7 +113,33 @@ const Dashboard: React.FC = () => {
   const filteredCountries = countries.filter(c => c.continentId === selectedContinent?.id);
   const filteredStates = states.filter(s => s.countryId === selectedCountry?.id);
   const hasStates = filteredStates.length > 0;
-  const filteredCities = cities.filter(c => {
+  
+  // Logic for children listing in sub-containers
+  const getChildrenData = () => {
+    if (selectedCity) return null; // No children for city
+    
+    let subCountries: Country[] = [];
+    let subStates: State[] = [];
+    let subCities: City[] = [];
+
+    if (selectedState) {
+      subCities = cities.filter(c => c.stateId === selectedState.id);
+    } else if (selectedCountry) {
+      subStates = states.filter(s => s.countryId === selectedCountry.id);
+      subCities = cities.filter(c => c.countryId === selectedCountry.id);
+    } else if (selectedContinent) {
+      subCountries = countries.filter(c => c.continentId === selectedContinent.id);
+      const countryIds = subCountries.map(c => c.id);
+      subStates = states.filter(s => countryIds.includes(s.countryId));
+      subCities = cities.filter(c => countryIds.includes(c.countryId));
+    }
+
+    return { subCountries, subStates, subCities };
+  };
+
+  const children = getChildrenData();
+
+  const filteredCitiesDropdown = cities.filter(c => {
     if (selectedState) return c.stateId === selectedState.id;
     if (selectedCountry) return c.countryId === selectedCountry.id && !c.stateId;
     return false;
@@ -117,17 +160,21 @@ const Dashboard: React.FC = () => {
   };
 
   const handleCreate = async () => {
-    if (!formName) return;
+    if (!formData.name) return;
     setError('');
     try {
       let endpoint = '';
-      let data: any = { name: formName };
+      let data: any = { name: formData.name };
 
       if (isAdding === 'continent') {
         endpoint = '/continents';
+        data.description = formData.description;
       } else if (isAdding === 'country') {
         endpoint = '/countries';
         data.continentId = selectedContinent?.id;
+        data.population = formData.population;
+        data.officialLanguage = formData.officialLanguage;
+        data.currency = formData.currency;
       } else if (isAdding === 'state') {
         endpoint = '/states';
         data.countryId = selectedCountry?.id;
@@ -135,10 +182,13 @@ const Dashboard: React.FC = () => {
         endpoint = '/cities';
         data.countryId = selectedCountry?.id;
         data.stateId = selectedState?.id || null;
+        data.population = formData.population;
+        data.latitude = formData.latitude;
+        data.longitude = formData.longitude;
       }
 
       await api.post(endpoint, data);
-      setFormName('');
+      resetForm();
       setIsAdding(null);
       await loadData();
     } catch (err: any) {
@@ -147,16 +197,19 @@ const Dashboard: React.FC = () => {
   };
 
   const handleUpdate = async () => {
-    if (!formName || !activeItem) return;
+    if (!formData.name || !activeItem) return;
     setError('');
     try {
       let endpoint = '';
-      let data: any = { name: formName };
+      let data: any = { name: formData.name };
 
       if (selectedCity) {
         endpoint = `/cities/${selectedCity.id}`;
         data.countryId = selectedCity.countryId;
         data.stateId = selectedCity.stateId;
+        data.population = formData.population;
+        data.latitude = formData.latitude;
+        data.longitude = formData.longitude;
       }
       else if (selectedState) {
         endpoint = `/states/${selectedState.id}`;
@@ -165,21 +218,26 @@ const Dashboard: React.FC = () => {
       else if (selectedCountry) {
         endpoint = `/countries/${selectedCountry.id}`;
         data.continentId = selectedCountry.continentId;
+        data.population = formData.population;
+        data.officialLanguage = formData.officialLanguage;
+        data.currency = formData.currency;
       }
       else if (selectedContinent) {
         endpoint = `/continents/${selectedContinent.id}`;
+        data.description = formData.description;
       }
 
       await api.put(endpoint, data);
       setIsEditing(false);
-      setFormName('');
+      resetForm();
       await loadData();
       
-      // Update selected reference locally
-      if (selectedCity) setSelectedCity({ ...selectedCity, name: formName });
-      else if (selectedState) setSelectedState({ ...selectedState, name: formName });
-      else if (selectedCountry) setSelectedCountry({ ...selectedCountry, name: formName });
-      else if (selectedContinent) setSelectedContinent({ ...selectedContinent, name: formName });
+      // Re-sync local selection
+      const updatedItemRes = await api.get(endpoint);
+      if (selectedCity) setSelectedCity(updatedItemRes.data);
+      else if (selectedState) setSelectedState(updatedItemRes.data);
+      else if (selectedCountry) setSelectedCountry(updatedItemRes.data);
+      else if (selectedContinent) setSelectedContinent(updatedItemRes.data);
 
     } catch (err: any) {
       setError(err.response?.data?.error || 'Erro ao atualizar item.');
@@ -214,7 +272,15 @@ const Dashboard: React.FC = () => {
 
   const startEdit = () => {
     if (!activeItem) return;
-    setFormName(activeItem.name);
+    setFormData({
+      name: activeItem.name,
+      description: (activeItem as Continent).description || '',
+      population: (activeItem as any).population?.toString() || '',
+      officialLanguage: (activeItem as Country).officialLanguage || '',
+      currency: (activeItem as Country).currency || '',
+      latitude: (activeItem as City).latitude?.toString() || '',
+      longitude: (activeItem as City).longitude?.toString() || '',
+    });
     setIsEditing(true);
     setIsAdding(null);
   };
@@ -222,13 +288,25 @@ const Dashboard: React.FC = () => {
   const startAdd = (type: 'continent' | 'country' | 'state' | 'city') => {
     setIsAdding(type);
     setIsEditing(false);
-    setFormName('');
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      population: '',
+      officialLanguage: '',
+      currency: '',
+      latitude: '',
+      longitude: ''
+    });
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', padding: '20px', fontFamily: 'sans-serif' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>
-        <h2 style={{ margin: 0 }}>CrudMundo - Explorer</h2>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', padding: '20px', fontFamily: 'sans-serif', backgroundColor: '#f0f2f5' }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #ddd', paddingBottom: '10px' }}>
+        <h2 style={{ margin: 0 }}>CrudMundo - Explorer Pro</h2>
         <div>
           <span style={{ marginRight: '15px' }}>Olá, <strong>{user?.name}</strong></span>
           <button onClick={handleLogout} style={{ padding: '5px 10px', cursor: 'pointer' }}>Sair</button>
@@ -236,7 +314,7 @@ const Dashboard: React.FC = () => {
       </header>
 
       {/* Quadrante Superior: Seleção */}
-      <div style={{ flex: 1, border: '1px solid #ccc', borderRadius: '8px', padding: '20px', marginBottom: '10px', backgroundColor: '#f9f9f9' }}>
+      <div style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '20px', marginBottom: '10px', backgroundColor: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
           <button 
             onClick={handleBack} 
@@ -245,7 +323,7 @@ const Dashboard: React.FC = () => {
           >
             ← Voltar
           </button>
-          <h3 style={{ margin: 0 }}>Filtros</h3>
+          <h3 style={{ margin: 0 }}>Navegação Geográfica</h3>
         </div>
 
         <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
@@ -326,54 +404,105 @@ const Dashboard: React.FC = () => {
               style={{ padding: '5px', minWidth: '150px' }}
             >
               <option value="">Selecione...</option>
-              {filteredCities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {filteredCitiesDropdown.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
             <button disabled={!selectedCountry} onClick={() => startAdd('city')} style={{ cursor: 'pointer' }}>+</button>
           </div>
         </div>
 
         {isAdding && (
-          <div style={{ marginTop: '20px', padding: '15px', border: '1px dashed blue', borderRadius: '5px' }}>
-            <h4>Adicionar Novo(a) {isAdding === 'continent' ? 'Continente' : isAdding === 'country' ? 'País' : isAdding === 'state' ? 'Estado' : 'Cidade'}</h4>
-            <input 
-              type="text" 
-              value={formName} 
-              onChange={(e) => setFormName(e.target.value)} 
-              placeholder="Nome"
-              style={{ padding: '5px', marginRight: '10px' }}
-            />
-            <button onClick={handleCreate} style={{ padding: '5px 15px', backgroundColor: '#e7f3ff', cursor: 'pointer' }}>Salvar</button>
-            <button onClick={() => setIsAdding(null)} style={{ padding: '5px 15px', marginLeft: '5px', cursor: 'pointer' }}>Cancelar</button>
+          <div style={{ marginTop: '20px', padding: '20px', border: '1px dashed #007bff', borderRadius: '8px', backgroundColor: '#f8fbff' }}>
+            <h4 style={{ marginTop: 0 }}>Adicionar Novo(a) {isAdding === 'continent' ? 'Continente' : isAdding === 'country' ? 'País' : isAdding === 'state' ? 'Estado' : 'Cidade'}</h4>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px' }}>
+              <input type="text" placeholder="Nome" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={{ padding: '8px' }} />
+              
+              {isAdding === 'continent' && (
+                <input type="text" placeholder="Descrição" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} style={{ padding: '8px' }} />
+              )}
+              
+              {(isAdding === 'country' || isAdding === 'city') && (
+                <input type="number" placeholder="População" value={formData.population} onChange={e => setFormData({...formData, population: e.target.value})} style={{ padding: '8px' }} />
+              )}
+              
+              {isAdding === 'country' && (
+                <>
+                  <input type="text" placeholder="Idioma Oficial" value={formData.officialLanguage} onChange={e => setFormData({...formData, officialLanguage: e.target.value})} style={{ padding: '8px' }} />
+                  <input type="text" placeholder="Moeda" value={formData.currency} onChange={e => setFormData({...formData, currency: e.target.value})} style={{ padding: '8px' }} />
+                </>
+              )}
+              
+              {isAdding === 'city' && (
+                <>
+                  <input type="number" step="any" placeholder="Latitude" value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})} style={{ padding: '8px' }} />
+                  <input type="number" step="any" placeholder="Longitude" value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})} style={{ padding: '8px' }} />
+                </>
+              )}
+            </div>
+            <div style={{ marginTop: '15px' }}>
+              <button onClick={handleCreate} style={{ padding: '10px 20px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Salvar</button>
+              <button onClick={() => setIsAdding(null)} style={{ padding: '10px 20px', marginLeft: '10px', cursor: 'pointer', border: '1px solid #ccc', borderRadius: '4px' }}>Cancelar</button>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Quadrante Inferior: Informações */}
-      <div style={{ flex: 1, border: '1px solid #ccc', borderRadius: '8px', padding: '20px', backgroundColor: '#fff', display: 'flex', flexDirection: 'column' }}>
+      {/* Quadrante Inferior: Informações Principais */}
+      <div style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '20px', backgroundColor: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '20px' }}>
         <h3 style={{ marginTop: 0, borderBottom: '1px solid #eee', paddingBottom: '10px' }}>Detalhes do Local</h3>
         
         {loading ? (
           <p>Carregando...</p>
         ) : activeItem ? (
-          <div style={{ flex: 1 }}>
-            <div style={{ marginBottom: '20px' }}>
-              <p><strong>Tipo:</strong> {activeType}</p>
-              <p><strong>Nome:</strong> {isEditing ? (
-                <input 
-                  type="text" 
-                  value={formName} 
-                  onChange={(e) => setFormName(e.target.value)} 
-                  style={{ padding: '5px' }}
-                />
-              ) : activeItem.name}</p>
-              <p><strong>ID:</strong> {activeItem.id}</p>
+          <div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '15px', marginBottom: '20px' }}>
+              <div><strong>Tipo:</strong> {activeType}</div>
+              <div><strong>Nome:</strong> {isEditing ? (
+                <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} style={{ padding: '5px' }} />
+              ) : activeItem.name}</div>
+              
+              {/* Campos dinâmicos baseados no tipo */}
+              {activeType === 'Continente' && (
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <strong>Descrição:</strong> {isEditing ? (
+                    <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} style={{ width: '100%', padding: '5px' }} />
+                  ) : (selectedContinent as Continent).description || 'N/A'}
+                </div>
+              )}
+
+              {activeType === 'País' && (
+                <>
+                  <div><strong>População:</strong> {isEditing ? (
+                    <input type="number" value={formData.population} onChange={e => setFormData({...formData, population: e.target.value})} style={{ padding: '5px' }} />
+                  ) : (selectedCountry as Country).population?.toLocaleString() || 'N/A'}</div>
+                  <div><strong>Idioma:</strong> {isEditing ? (
+                    <input type="text" value={formData.officialLanguage} onChange={e => setFormData({...formData, officialLanguage: e.target.value})} style={{ padding: '5px' }} />
+                  ) : (selectedCountry as Country).officialLanguage || 'N/A'}</div>
+                  <div><strong>Moeda:</strong> {isEditing ? (
+                    <input type="text" value={formData.currency} onChange={e => setFormData({...formData, currency: e.target.value})} style={{ padding: '5px' }} />
+                  ) : (selectedCountry as Country).currency || 'N/A'}</div>
+                </>
+              )}
+
+              {activeType === 'Cidade' && (
+                <>
+                  <div><strong>População:</strong> {isEditing ? (
+                    <input type="number" value={formData.population} onChange={e => setFormData({...formData, population: e.target.value})} style={{ padding: '5px' }} />
+                  ) : (selectedCity as City).population?.toLocaleString() || 'N/A'}</div>
+                  <div><strong>Latitude:</strong> {isEditing ? (
+                    <input type="number" step="any" value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})} style={{ padding: '5px' }} />
+                  ) : (selectedCity as City).latitude || 'N/A'}</div>
+                  <div><strong>Longitude:</strong> {isEditing ? (
+                    <input type="number" step="any" value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})} style={{ padding: '5px' }} />
+                  ) : (selectedCity as City).longitude || 'N/A'}</div>
+                </>
+              )}
             </div>
 
-            <div style={{ marginTop: 'auto', display: 'flex', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '10px' }}>
               {isEditing ? (
                 <>
-                  <button onClick={handleUpdate} style={{ padding: '10px 20px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Salvar Alterações</button>
-                  <button onClick={() => setIsEditing(false)} style={{ padding: '10px 20px', cursor: 'pointer' }}>Cancelar</button>
+                  <button onClick={handleUpdate} style={{ padding: '10px 20px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Salvar</button>
+                  <button onClick={() => setIsEditing(false)} style={{ padding: '10px 20px', cursor: 'pointer', border: '1px solid #ccc', borderRadius: '4px' }}>Cancelar</button>
                 </>
               ) : (
                 <>
@@ -384,11 +513,60 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         ) : (
-          <p style={{ color: '#666', fontStyle: 'italic' }}>Selecione um local no painel superior para ver detalhes.</p>
+          <p style={{ color: '#666', fontStyle: 'italic' }}>Selecione um local para ver detalhes.</p>
         )}
-
-        {error && <p style={{ color: 'red', marginTop: '10px' }}>{error}</p>}
       </div>
+
+      {/* Containers de Listagem Adicionais */}
+      {activeItem && children && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Container Países */}
+          {children.subCountries.length > 0 && (
+            <div style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '20px', backgroundColor: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <h4 style={{ marginTop: 0 }}>Países ({children.subCountries.length})</h4>
+              <ul style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px', padding: 0, listStyle: 'none' }}>
+                {children.subCountries.map(c => (
+                  <li key={c.id} style={{ padding: '10px', border: '1px solid #eee', borderRadius: '4px', backgroundColor: '#fafafa' }}>
+                    <strong>{c.name}</strong><br/>
+                    <small>Pop: {c.population?.toLocaleString() || '-'}</small>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Container Estados */}
+          {children.subStates.length > 0 && (
+            <div style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '20px', backgroundColor: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <h4 style={{ marginTop: 0 }}>Estados ({children.subStates.length})</h4>
+              <ul style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px', padding: 0, listStyle: 'none' }}>
+                {children.subStates.map(s => (
+                  <li key={s.id} style={{ padding: '10px', border: '1px solid #eee', borderRadius: '4px', backgroundColor: '#fafafa' }}>
+                    {s.name}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Container Cidades */}
+          {children.subCities.length > 0 && (
+            <div style={{ border: '1px solid #ccc', borderRadius: '8px', padding: '20px', backgroundColor: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <h4 style={{ marginTop: 0 }}>Cidades ({children.subCities.length})</h4>
+              <ul style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px', padding: 0, listStyle: 'none' }}>
+                {children.subCities.map(c => (
+                  <li key={c.id} style={{ padding: '10px', border: '1px solid #eee', borderRadius: '4px', backgroundColor: '#fafafa' }}>
+                    <strong>{c.name}</strong><br/>
+                    <small>Pop: {c.population?.toLocaleString() || '-'}</small>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {error && <div style={{ color: 'red', marginTop: '20px', padding: '10px', border: '1px solid red', borderRadius: '4px', backgroundColor: '#fff' }}>{error}</div>}
     </div>
   );
 };

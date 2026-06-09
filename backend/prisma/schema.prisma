@@ -14,24 +14,28 @@ datasource db {
 }
 
 model Continent {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  countries Country[] // Relacionamento 1-para-Muitos: Um continente tem vários países
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?  // Novo campo
+  countries   Country[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  @@map("continents") // Opcional: Define o nome da tabela no plural no Postgres
+  @@map("continents")
 }
 
 model Country {
-  id          String    @id @default(uuid())
-  name        String    @unique
-  continentId String
-  continent   Continent @relation(fields: [continentId], references: [id], onDelete: Cascade)
-  state       State[]   // adicionado conceito de estado
-  cities      City[]    // Relacionamento 1-para-Muitos: Um país tem várias cidades
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id               String    @id @default(uuid())
+  name             String    @unique
+  population       Int?      // Novo campo
+  officialLanguage String?   // Novo campo
+  currency         String?   // Novo campo
+  continentId      String
+  continent        Continent @relation(fields: [continentId], references: [id], onDelete: Cascade)
+  state            State[]
+  cities           City[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   @@map("countries")
 }
@@ -47,14 +51,17 @@ model State {
 }
 
 model City {
-  id        String   @id @default(uuid())
-  name      String
-  stateId   String?
-  state     State?   @relation(fields: [stateId], references: [id])
-  countryId String
-  country   Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  name        String
+  population  Int?     // Novo campo
+  latitude    Float?   // Novo campo
+  longitude   Float?   // Novo campo
+  stateId     String?
+  state       State?   @relation(fields: [stateId], references: [id])
+  countryId   String
+  country     Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@unique([name, stateId])
   @@map("cities")
