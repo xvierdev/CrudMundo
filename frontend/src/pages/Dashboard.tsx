@@ -54,6 +54,7 @@ interface City {
 }
 
 const Dashboard: React.FC = () => {
+  // Inicializa o estado do usuário buscando do localStorage
   const [user] = useState<any>(() => {
     const storedUser = localStorage.getItem('@CrudMundo:user');
     return storedUser ? JSON.parse(storedUser) : null;
@@ -98,12 +99,14 @@ const Dashboard: React.FC = () => {
     longitude: ''
   });
 
+  // Realiza o logout do usuário limpando o localStorage e redirecionando
   const handleLogout = useCallback(() => {
     localStorage.removeItem('@CrudMundo:token');
     localStorage.removeItem('@CrudMundo:user');
     navigate('/');
   }, [navigate]);
 
+  // Altera a senha do usuário logado
   const handleChangePassword = async () => {
     if (!oldPassword) {
       setError('A senha antiga é obrigatória.');
@@ -125,6 +128,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Carrega todas as listas de entidades do backend
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -149,6 +153,7 @@ const Dashboard: React.FC = () => {
     }
   }, [handleLogout]);
 
+  // Efeito para garantir que o usuário esteja autenticado e carregar dados
   useEffect(() => {
     const token = localStorage.getItem('@CrudMundo:token');
 
@@ -165,7 +170,7 @@ const Dashboard: React.FC = () => {
   const filteredStates = states.filter(s => s.countryId === selectedCountry?.id);
   const hasStates = filteredStates.length > 0;
   
-  // Logic for children listing in sub-containers
+  // Lógica para listar itens filhos (países, estados, cidades) dependendo da seleção
   const getChildrenData = () => {
     if (selectedCity) return null; // No children for city
     
@@ -199,21 +204,20 @@ const Dashboard: React.FC = () => {
   const activeItem = selectedCity || selectedState || selectedCountry || selectedContinent;
   const activeType = selectedCity ? 'Cidade' : selectedState ? 'Estado' : selectedCountry ? 'País' : selectedContinent ? 'Continente' : null;
 
+  // Busca informações adicionais do país em APIs externas (restcountries.com)
   const fetchExternalCountry = useCallback(async (name: string, exact?: string) => {
     setApiLoading(true);
     try {
       let response;
       if (exact) {
-        // Se temos o nome exato (em inglês), usamos a busca por texto completo
+        // Buscar informação tendo o nome exato em ingles
         response = await axios.get(`https://restcountries.com/v3.1/name/${encodeURIComponent(exact)}?fullText=true`);
       } else {
-        // Se não temos o nome exato, usamos o endpoint de tradução que é mais robusto para inputs em PT-BR
-        // e tentamos encontrar a melhor correspondência nos resultados
+        /// Caso o nome não seja exato
         response = await axios.get(`https://restcountries.com/v3.1/translation/${encodeURIComponent(name)}`);
         
         if (response.data && response.data.length > 1) {
           // Se houver mais de um resultado (ex: Estados Unidos -> México e USA)
-          // Filtramos pelo nome comum ou tradução que bata exatamente com o que o usuário digitou
           const bestMatch = response.data.find((c: any) => {
             const commonName = c.name.common.toLowerCase();
             const portugueseName = c.translations?.por?.common?.toLowerCase();
@@ -250,6 +254,7 @@ const Dashboard: React.FC = () => {
     }
   }, [selectedCountry, fetchExternalCountry]);
 
+  // Busca as informações do clima pelas coordenadas usando a API Open-Meteo
   const fetchWeather = useCallback(async (city: City) => {
     if (!city.latitude || !city.longitude) {
       console.warn(`Cidade ${city.name} sem coordenadas. Clima não disponível.`);
@@ -261,7 +266,7 @@ const Dashboard: React.FC = () => {
     setWeather(null);
 
     try {
-      // Open-Meteo não precisa de API Key!
+      // Open-Meteo para buscar informações sobre o clima
       const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.latitude}&longitude=${city.longitude}&current_weather=true&timezone=auto`;
       
       console.log(`Buscando clima (Open-Meteo) para ${city.name}:`, { lat: city.latitude, lon: city.longitude });
@@ -276,7 +281,7 @@ const Dashboard: React.FC = () => {
     }
   }, []);
 
-  // Função auxiliar para traduzir códigos da Open-Meteo para ícones/descrições
+  // Função auxiliar para traduzir códigos da API Open-Meteo para ícones/descrições em português
   const getWeatherInfo = (code: number) => {
     const table: Record<number, { desc: string, icon: string }> = {
       0: { desc: 'Céu Limpo', icon: '01d' },
@@ -302,6 +307,7 @@ const Dashboard: React.FC = () => {
     }
   }, [selectedCity, fetchWeather]);
 
+  // Verifica a informação do país usando a API GROQ
   const verifyCountryWithGroq = async (name: string, continent: string): Promise<string> => {
     const apiKey = import.meta.env.VITE_GROQ_API_KEY;
     if (!apiKey) {
@@ -318,7 +324,9 @@ const Dashboard: React.FC = () => {
           messages: [
             {
               role: 'system',
-              content: 'Você é um especialista em geografia. Sua tarefa é receber o nome de um país e o continente dele, e retornar APENAS o nome comum desse país em INGLÊS que seja reconhecido pela API restcountries.com. Não explique nada, retorne apenas o nome. Exemplo: "Estados Unidos" na "América" -> "United States".'
+              content: 'Você é um especialista em geografia. Sua tarefa é receber o nome de um país e o continente dele, \
+              e retornar APENAS o nome comum desse país em INGLÊS que seja reconhecido pela API restcountries.com. \
+              Não explique nada, retorne apenas o nome. Exemplo: "Estados Unidos" na "América" -> "United States".'
             },
             {
               role: 'user',
@@ -344,6 +352,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Preenche automaticamente dados do país baseando-se no nome usando IA e restcountries
   const handleAutoFillCountry = async () => {
     const countryName = formData.name;
     const continentName = selectedContinent?.name;
@@ -356,11 +365,10 @@ const Dashboard: React.FC = () => {
     setApiLoading(true);
     setError('');
     try {
-      // 1. Groq valida o nome
+      // verificar nome com Groq
       const verifiedName = await verifyCountryWithGroq(countryName, continentName);
       
-      // 2. Busca na RestCountries com o nome exato
-      // Usamos um try/catch interno para capturar 404 da RestCountries separadamente
+      // Busca na RestCountries com o nome exato
       let response;
       try {
         response = await axios.get(`https://restcountries.com/v3.1/name/${encodeURIComponent(verifiedName)}?fullText=true`);
@@ -369,7 +377,7 @@ const Dashboard: React.FC = () => {
           setError(`País "${verifiedName}" não encontrado na API RestCountries.`);
           return;
         }
-        throw restErr; // Repassa outros erros (conexão, etc.)
+        throw restErr;
       }
       
       if (response && response.data && response.data.length > 0) {
@@ -396,6 +404,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Preenche automaticamente dados da cidade baseando-se no nome usando Nominatim e OpenDataSoft
   const handleAutoFillCity = async () => {
     const cityName = formData.name;
     const country = selectedCountry;
@@ -409,7 +418,7 @@ const Dashboard: React.FC = () => {
     setError('');
 
     try {
-      // 1. Buscar Coordenadas via OpenStreetMap (Nominatim)
+      // Buscar Coordenadas via OpenStreetMap (Nominatim)
       const query = `${cityName}, ${country.name}`;
       const geoUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
       
@@ -426,7 +435,7 @@ const Dashboard: React.FC = () => {
         lon = geoRes.data[0].lon.toString();
       }
 
-      // 2. Buscar População via OpenDataSoft (Geonames dataset)
+      // Buscar População via OpenDataSoft (Geonames dataset)
       try {
         const popUrl = `https://public.opendatasoft.com/api/records/1.0/search/?dataset=geonames-all-cities-with-a-population-1000&q=${encodeURIComponent(cityName)}&facet=country&refine.country=${encodeURIComponent(country.name)}`;
         const popRes = await axios.get(popUrl);
@@ -464,6 +473,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Voltar na hierarquia de navegação
   const handleBack = () => {
     if (selectedCity) setSelectedCity(null);
     else if (selectedState) setSelectedState(null);
@@ -475,6 +485,7 @@ const Dashboard: React.FC = () => {
     setError('');
   };
 
+  // Cria um novo item geográfico no backend
   const handleCreate = async () => {
     let minLen = 0;
     let entityName = '';
@@ -550,6 +561,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Atualiza um item geográfico existente no backend
   const handleUpdate = async () => {
     let minLen = 0;
     let entityName = '';
@@ -635,6 +647,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Exclui um item geográfico existente no backend
   const handleDelete = async () => {
     if (!activeItem) return;
     if (!window.confirm(`Deseja realmente excluir ${activeType}: ${activeItem.name}?`)) return;
@@ -660,6 +673,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Inicia o modo de edição para o item ativo
   const startEdit = () => {
     if (!activeItem) return;
     setFormData({
@@ -676,12 +690,14 @@ const Dashboard: React.FC = () => {
     setIsAdding(null);
   };
 
+  // Inicia o modo de adição de um novo item
   const startAdd = (type: 'continent' | 'country' | 'state' | 'city') => {
     setIsAdding(type);
     setIsEditing(false);
     resetForm();
   };
 
+  // Reseta os campos do formulário
   const resetForm = () => {
     setFormData({
       name: '',
@@ -873,7 +889,7 @@ const Dashboard: React.FC = () => {
           <div style={{ marginTop: '24px', padding: '24px', border: '1px solid #e1e8ed', borderRadius: '12px', backgroundColor: '#fcfdfe' }}>
             <h4 style={{ marginTop: 0, color: '#4a90e2' }}>Adicionar Novo(a) {isAdding === 'continent' ? 'Continente' : isAdding === 'country' ? 'País' : isAdding === 'state' ? 'Estado' : 'Cidade'}</h4>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
-              <input type="text" placeholder="Nome (Ex: Brasil)" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+              <input type="text" placeholder="Nome (Ex: América Central)" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
               
               {isAdding === 'country' && (
                 <input type="text" placeholder="Nome Exato (Ex: Brazil)" value={formData.exactName} onChange={e => setFormData({...formData, exactName: e.target.value})} />
